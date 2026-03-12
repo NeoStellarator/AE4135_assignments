@@ -63,11 +63,11 @@ class AnnularIterator3:
         
         while a_diff>tolerance and a_line_diff>tolerance:
             Urot = self.Uinf * (1-a)
-            Omega = 2*np.pi*self.Uinf/(2*self.R*self.J)
+            Omega = np.pi*self.Uinf/(self.R*self.J)
             Utan = (1+a_line)*Omega*r_R*self.R
             Umag2 = np.sqrt(Urot**2+Utan**2)
-            Phi2 = np.arctan2(Urot,Utan)
-            Phi = np.arctan(self.J/np.pi*(1-a)/(1+a_line))
+            Phi = np.arctan2(Urot,Utan)
+            Phi2 = np.arctan(self.J/np.pi*(1-a)/(1+a_line))
             print(Phi*180/np.pi, Phi2*180/np.pi)
             alpha = self.Beta+Phi*180/np.pi
             Cl = self.calculate_cl(alpha)
@@ -75,21 +75,23 @@ class AnnularIterator3:
             sigma_r = self.calculate_csolidity(self.B,chord,self.r_R)
             Cx = Cl*np.cos(Phi)+Cd*np.sin(Phi)
             Cy = Cl*np.sin(Phi)-Cd*np.cos(Phi)
-            Faxial = 0.5*self.rho*chord*Umag2*chord*Cy
-            Fazim = 0.5*self.rho*chord*Umag2*chord*Cx
+            Faxial = 0.5*self.rho*chord*Umag2*Cy
+            Fazim = 0.5*self.rho*chord*Umag2*Cx
 
             
-            area = np.pi*self.R**2
+            area = 2*np.pi*self.r_R*self.R**2
             CT = Faxial*B/(0.5*area*self.Uinf**2)
+            CT2 = 4*a*(1-a)
             print("CT:", CT)
             prandtl = self.calculate_prandtl_correction(self.r_R,a,self.B,self.J)
-            a_new = self.calculate_a(CT)/prandtl
+            # print("prandtl:", prandtl)
+            a_new = self.calculate_a(CT2)/prandtl
             a_line_new = self.calculate_a_line(Phi,Cy,sigma_r)/prandtl
             a_diff = abs(a_new-a)
             a_line_diff = abs(a_line_new-a_line)
             a = a*0.75+a_new*0.25
             a_line = a_line*0.75+a_line_new*0.25
-            CT2 = 4*a*(1-a)
+            
             print("CT2:", CT2)
         return a, a_line
 
