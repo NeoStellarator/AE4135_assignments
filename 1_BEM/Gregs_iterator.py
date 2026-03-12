@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import fsolve
 class AnnularIterator3:
-    def __init__(self,Uinf,J,B,R,C_r,Beta,r_R,dr_R,polar_path):
+    def __init__(self,Uinf,J,B,R,C_r,Beta,r_R,polar_path):
         self.Uinf = Uinf
         self.J = J
         self.B = B
@@ -9,9 +9,9 @@ class AnnularIterator3:
         self.C_r = C_r
         self.Beta = Beta
         self.r_R = r_R
-        self.dr_R = dr_R
-        self.polar_data=self.load_polar_data(polar_path)
+
         self.rho = 1.006
+        self.polar_data=self.load_polar_data(polar_path)
     def load_polar_data(self, polar_path):
         polar_txt=np.loadtxt(polar_path,skiprows=2)
         polar_data = {}
@@ -38,8 +38,8 @@ class AnnularIterator3:
     #         return a_line/(1+a_line)-sigma_r/(4*np.cos(Phi)*np.sin(Phi))*Ftan
     #     return fsolve(func_a_line,0)[0]
     
-    def calculate_a_line(self,Phi,Ftan,sigma_r):
-        A = sigma_r/(4*np.cos(Phi)*np.sin(Phi))*Ftan
+    def calculate_a_line(self,Phi,Cy,sigma_r):
+        A = sigma_r/(4*np.cos(Phi)*np.sin(Phi))*Cy
         return A/(1-A)
 
     
@@ -73,23 +73,24 @@ class AnnularIterator3:
             Cl = self.calculate_cl(alpha)
             Cd = self.calculate_cd(alpha)
             sigma_r = self.calculate_csolidity(self.B,chord,self.r_R)
-            L = 0.5*Umag2*Cl*chord
-            D = 0.5*Umag2*Cd*chord
-            Fnorm = L*np.cos(Phi)+D*np.sin(Phi)
-            Ftan = L*np.sin(Phi)-D*np.cos(Phi)
-            gamma = 0.5*np.sqrt(Umag2)*Cl*chord
+            Cx = Cl*np.cos(Phi)+Cd*np.sin(Phi)
+            Cy = Cl*np.sin(Phi)-Cd*np.cos(Phi)
+            Faxial = 0.5*self.rho*chord*Umag2*chord*Cy
+            Fazim = 0.5*self.rho*chord*Umag2*chord*Cx
 
-            Faxial = Fnorm*self.R*(self.dr_R)*self.B
+            
             area = np.pi*self.R**2
-            CT = Faxial/(0.5*area*self.Uinf**2)
+            CT = Faxial*B/(0.5*area*self.Uinf**2)
             print("CT:", CT)
             prandtl = self.calculate_prandtl_correction(self.r_R,a,self.B,self.J)
             a_new = self.calculate_a(CT)/prandtl
-            a_line_new = self.calculate_a_line(Phi,Ftan,sigma_r)/prandtl
+            a_line_new = self.calculate_a_line(Phi,Cy,sigma_r)/prandtl
             a_diff = abs(a_new-a)
             a_line_diff = abs(a_line_new-a_line)
             a = a*0.75+a_new*0.25
             a_line = a_line*0.75+a_line_new*0.25
+            CT2 = 4*a*(1-a)
+            print("CT2:", CT2)
         return a, a_line
 
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
     beta=beta_list[idx]
     c_R = c_R_list[idx]
     sigma_r = solidity_r_list[idx]
-    ai = AnnularIterator3(Uinf=60, J = J, R=0.7,B=B, C_r=c_R, Beta=beta, r_R=r_R,dr_R = dr_R ,polar_path="1_BEM/ARAD8pct_polar.txt")
+    ai = AnnularIterator3(Uinf=60, J = J, R=0.7,B=B, C_r=c_R, Beta=beta, r_R=r_R,polar_path="1_BEM/ARAD8pct_polar.txt")
     a, a_line = ai.run_iteration()
     print(a, a_line)
     # print(a, a_line)
