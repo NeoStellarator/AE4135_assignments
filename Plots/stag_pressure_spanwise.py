@@ -1,34 +1,48 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-def stag_pressure_spanwise_loc(location):
+import numpy as np
+def stag_pressure_spanwise_loc(locations):
     V0 = 60 #m/s
     rho = 1.007
     p0 = 7.950e4 #N/m^2
     df = pd.read_csv('Plots/BEM_randomdata.csv')
-    if location == 'upwind':
-        V = V0
-        pstag = p0 + 0.5*rho*V**2
-    elif location == 'rotor_up':
-        V = V0*(1-df['a'])
-        # stagnation pressure is constant before the rotor
-        p_stag = p0 + 0.5*rho*V0**2
-    elif location == 'rotor_down':
-        #increase in pressure due to rotor
-        V = V0*(1-df['a'])
-        Vr = 1/2*(V0+V0*(1-2*df['a']))
-        p_static_br = p0 + 0.5*rho*V0**2 - 0.5*rho*V**2
-        p_jump = 2*rho*(V0-Vr)*Vr
-        p_static_ar = p_static_br - p_jump #check signs should be a increase in pressure
-        p_stag = p_static_ar + 0.5*rho*Vr**2
-    else:
-        V4 = V0*(1-2*df['a'])
-        V2 = V0*(1-df['a'])
-        Vr = 1/2*(V0+V4)
-        p_static_br = p0 + 0.5*rho*V0**2 - 0.5*rho*V2**2
-        p_jump = 2*rho*(V0-Vr)*Vr
-        p_static_ar = p_static_br - p_jump #check signs should be a increase in pressure
+    def Bernulli_forP(p0, rho, V0,V1):
+        return p0 + 0.5*rho*V0**2-0.5*rho*V1**2
+    
+    # Create 2x2 subplots
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes = axes.flatten()  # Flatten to easily index
+    
+    for i, loc in enumerate(locations):
+        if loc == 'upwind' or loc == 'rotor_up':
+            V = V0
+            p_stag = p0 + 0.5*rho*V**2
+            p_stag = np.ones(len(df['r_R']))*p_stag
+        else:
+            #increase in pressure due to rotor
+            V = V0*(1-df['a'])
+            Vr = 1/2*(V0+V0*(1-2*df['a']))
+            p_static_br = Bernulli_forP(p0,rho,V0,V)
+            p_jump = 2*rho*(V0-Vr)*Vr
+            p_static_ar = p_static_br - p_jump #check signs should be a increase in pressure
+            if loc == 'rotor_down':
+                p_stag = p_static_ar + 0.5*rho*V**2
+            elif loc == 'downwind':
+                pstatic = Bernulli_forP(p_static_ar,rho,V,Vr)
+                p_stag = pstatic + 0.5*rho*Vr**2
         
-
-    pstag = p0 + 0.5*rho*V**2
+        # Plot on the appropriate subplot
+        axes[i].plot(df['r_R'], p_stag, label=f'stagnation pressure at {loc}')
+        axes[i].set_xlabel('r/R')
+        axes[i].set_ylabel('Stagnation Pressure (N/m²)')
+        axes[i].set_title(f'Stagnation Pressure at {loc}')
+        axes[i].legend()
+        axes[i].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+locations = ['upwind', 'rotor_up', 'rotor_down', 'downwind']
+stag_pressure_spanwise_loc(locations)
     
     
