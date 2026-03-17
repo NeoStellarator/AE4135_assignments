@@ -9,34 +9,28 @@ class Annuli:
 
     def __init__(self, 
                  polar_path:Path|str, 
-                 Uinf: float,
-                 Omega:float,
-                 r1_R:float,
-                 r2_R:float,
-                 r_R_H:float,
-                 R:float,
-                 B:float,
+                 r_R:float,
                  c_R:float,
+                 dr_R:float,
                  beta:float,
+                 B:int, 
+                 J:float,
+                 R:float,
+                 r_R_H:float=0,
                  a0:float=0,
-                 aline0:float=0,
-                 isPropeller:bool = False):
+                 aline0:float=0):
 
-        self.Uinf = Uinf
-        self.r1_R = r1_R
-        self.r2_R = r2_R
-        self.r_R_H = r_R_H
-        self.Omega = Omega
-        self.R=R
-        self.B = B
-        self.c_R = c_R
-        self.beta = beta
-        self.TSR = (Omega * R) / Uinf
-        self.r_R = (r1_R + r2_R) / 2
-        self.sig = (B * c_R) / (2* np.pi * self.r_R)
-        self.chord = c_R*R
-        self.A = np.pi*((r2_R *R )**2- (r1_R*R)**2)
-        self.isPropeller = isPropeller
+        # save blade 
+        self.R     = R     # blade radius
+        self.r_R   = r_R   # blade radial coordinate
+        self.r_R_H = r_R_H # hub radial coordinate
+        self.c_R   = c_R   # blade chord 
+        self.beta  = beta  # blade twist
+        self.dr_R  = dr_R  # blade element thickness 
+        self.B     = B     # blade number
+        self.J     = J     # advance ratio
+        self.TSR   = np.pi/J # tip speed ratio
+        self.sig   = self.B/(2*np.pi)*self.c_R/self.r_R # blade solidity
 
         # iteration initialization
         self.a0     = a0
@@ -66,36 +60,34 @@ class Annuli:
     def calculate_Cd(self, alpha:np.ndarray|float) -> np.ndarray|float:
         """Method to compute Cd at a given angle of attack"""
         return np.interp(alpha,self.polar_data["alpha"],self.polar_data["Cd"])
-    # def CTfunction(self,a, glauert = False):
-    #     """
-    #     This function calculates the thrust coefficient as a function of induction factor 'a'
-    #     'glauert' defines if the Glauert correction for heavily loaded rotors should be used; default value is false
-    #     """
-    #     CT = 4*a*(1-a)  
-    #     if glauert:
-    #         CT1=1.816
-    #         a1=1-np.sqrt(CT1)/2
-    #         if a>a1:
-    #             CT = CT1-4*(np.sqrt(CT1)-1)*(1-a)
+    def CTfunction(self,a, glauert = False):
+        """
+        This function calculates the thrust coefficient as a function of induction factor 'a'
+        'glauert' defines if the Glauert correction for heavily loaded rotors should be used; default value is false
+        """
+        CT = 4*a*(1-a)  
+        if glauert:
+            CT1=1.816
+            a1=1-np.sqrt(CT1)/2
+            if a>a1:
+                CT = CT1-4*(np.sqrt(CT1)-1)*(1-a)
         
-    #     return CT
+        return CT
     def ainduction(self, CT):
         """
         This function calculates the induction factor 'a' as a function of thrust coefficient CT 
         including Glauert's correction
         """
+        a = np.zeros(np.shape(CT))
         CT1=1.816
         CT2=2*np.sqrt(CT1)-CT1
-        # print(CT)
         if CT>=CT2:
             a = 1 + (CT-CT1)/(4*(np.sqrt(CT1)-1))
         if CT<CT2:
             a = 0.5-0.5*np.sqrt(1-CT)
         return a
 
-
-
-    def run_iteration(self, tol=1e-5, iter_max=1e5):
+    def run_iteration(self, tol=1e-6, iter_max=1e5):
         a = self.a0
         aline = self.aline0
 
@@ -107,50 +99,51 @@ class Annuli:
         while (max(np.abs(a - a_old), np.abs(aline - aline_old)) > tol
        and i < iter_max):
             
-            Ux = self.Uinf*(1-a)
-            Uy = (1+aline)*self.Omega*self.r_R*self.R
-
             # compute angles
-            phi = np.arctan2(Ux,Uy)
-            # phi = np.arctan((1/(self.TSR*self.r_R))*(1-a)/(1+aline))
-            if self.isPropeller:
-                alpha_deg =self.beta - np.rad2deg(phi)
-            else:
-                alpha_deg = (np.rad2deg(phi) - self.beta)
+            phi = np.arctan((1/(self.TSR*self.r_R))*(1-a)/(1+aline))
+            alpha_deg =-(self.beta - np.rad2deg(phi))
 
             # find forces
             Cl = self.calculate_Cl(alpha_deg)
             Cd = self.calculate_Cd(alpha_deg)
 
-            
-            W2 = Ux**2+Uy**2
-
-            L = 0.5*W2*Cl*self.chord
-            D = 0.5*W2*Cd*self.chord
+            lift = 0.5*vmag2*cl*chord
+            drag = 0.5*vmag2*cd*chord
 
             # rotate forces
-            Fx = (L*np.cos(phi)+D*np.sin(phi))
-            Fy = (L*np.sin(phi)-D*np.cos(phi))
+            Cx = (Cl*np.cos(phi)+Cd*np.sin(phi))
+            Cy = (Cl*np.sin(phi)-Cd*np.cos(phi))
             
-            Fx_annuli = Fx*self.R*(self.r2_R-self.r1_R)*self.B
-            CT = Fx_annuli/(0.5*self.A*self.Uinf**2)
+            # compute other coefficients
+            Ct = Cx*self.sig*((1-a)/np.sin(phi))**2
+            Ca = Cy*self.sig*((1-a)/np.sin(phi))**2
+            Cq = Ca*self.r_R
+            Cp = Cx*self.sig*((1-a)/np.sin(phi))**3
 
+            CT = Cx
 
-            a_new= self.ainduction(CT)
-            aline_new = Fy*self.B/(2*np.pi*self.Uinf*(1-a)*self.Omega*2*(self.r_R*self.R)**2)
-                       
+            a= self.ainduction(CT)
+            
+
+            # compute the new induction factors
+            # RHS_1 = self.sig/(4*np.sin(phi)**2)*Cx
+            # RHS_2 = self.sig/(4*np.sin(phi)*np.cos(phi))*Cy
+
+            
+            # a_new = RHS_1/(1+RHS_1)
+            # # Ct = self.CTfunction(a_new,glauert=True)
+            # a_new = self.ainduction(Ct)
+            # aline_new = RHS_2/(1-RHS_2)
+            
             # apply hub/tip loss correction
             f = tip_correction.calculate_prandtl_correction(
                 B=self.B,
                 TSR=self.TSR,
-                a=a_new,
-                a_line = aline_new,
+                a=a,
+                a_line = aline,
                 r_R=self.r_R,
                 r_R_H=self.r_R_H)
             
-            # f=tip_correction.PrandtlTipRootCorrection(r_R=self.r_R,rootradius_R= self.r_R_H, tipradius_R=1,TSR=self.TSR,NBlades= self.B,axial_induction=a_new)
-            # if (f < 0.0001): 
-            #     f = 0.0001 
             
             a_new /= f
             aline_new /= f 
@@ -171,14 +164,15 @@ class Annuli:
         self.alpha = alpha_deg
         self.Cl = Cl
         self.Cd = Cd
-        self.Fx = Fx
-        self.Fy = Fy
+        self.Cx = Cx
+        self.Cy = Cy
         self.f  = f
-        self.CT = CT
+        self.Ct = Ct
+        self.Cp = Cp
+        self.Ca = Ca
+        self.Cq = Cq
         self.a = a
         self.aline = aline
-        self.Ux = Ux
-        self.Uy= Uy
 
 if __name__ == "__main__":
     
