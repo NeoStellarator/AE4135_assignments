@@ -11,7 +11,7 @@ from globals import main_dir
 
 
 class Rotor:
-    def __init__(self,Uinf, Omega, c_R_func,twst_func, B, R, pitch, r_R_H,n_elem,polar_path,dist_elem='uniform',isPropeller = False):
+    def __init__(self,Uinf, Omega, c_R_func,twst_func, B, R, pitch, r_R_H,n_elem,polar_path,H=2000,dist_elem='uniform',isPropeller = False):
         self.Uinf = Uinf
         self.Omega = Omega
         self.c_R_func = c_R_func
@@ -27,13 +27,16 @@ class Rotor:
         
         if dist_elem == "uniform":
             rr = np.linspace(r_R_H, 1, n_elem+1)
-            self.r1_R_lst = rr[1:]
-            self.r2_R_lst = rr[:-1]
+            self.r1_R_lst = rr[:-1]
+            self.r2_R_lst = rr[1:]
+            
             self.r_R_lst = (rr[1:] + rr[:-1])/2
             
             self.c_R_lst = c_R_func(self.r_R_lst)
             self.beta_lst = pitch + twst_func(self.r_R_lst)
-        
+        self.T = 288.15 - 0.0065 * H
+        self.rho = 1.225* (self.T/288.15)**(-(9.81/(-0.0065*287)+1))
+        print(self.rho)
         self.annuli_lst = [
             
             Annuli(polar_path=polar_path,
@@ -46,6 +49,7 @@ class Rotor:
                  B=self.B,
                  c_R=self.c_R_lst[i],
                  beta=self.beta_lst[i],
+                 rho = self.rho,
                  isPropeller = self.isPropeller,
                  a0=1/3,
                  aline0=0) for i in range(n_elem)]
@@ -106,12 +110,24 @@ class Rotor:
 
         plt.tight_layout()
         plt.show()
+    def calculate_integral(self):
+        integral_values = np.array([an.calculate_forces() for an in self.annuli_lst])
+        print(integral_values)
+        total_thrust = sum(integral_values[:,0])
+        total_torque = sum(integral_values[:,1])
+        n= self.Omega/(2*np.pi)*60
+        total_CT = total_thrust/(self.rho*n**2*(2*self.R)**4)
+        return total_thrust, total_torque, total_CT
+    def print_geometry(self):
+        for i in range(self.n_elem):
+            print(self.r_R_lst[i],self.c_R_lst[i],self.beta_lst[i])
+
         
 
 if __name__ == "__main__":
     # Propeller
     c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
-    twst_func:Callable = lambda r_R : -50*r_R+35
+    twst_func:Callable = lambda r_R : -50*r_R+35+60
     B:float=6
     R:float=0.7
     pitch:float=46
@@ -167,5 +183,7 @@ if __name__ == "__main__":
     #     polar_path=polar,
     #     isPropeller=False)
     
-    
+    # rotor.print_geometry()
+    print(rotor.calculate_integral())
     rotor.plot_radial()
+    
