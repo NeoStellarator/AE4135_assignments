@@ -108,37 +108,49 @@ class Rotor:
 
 if __name__ == "__main__":
     # Propeller
-    # c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
-    # twst_func:Callable = lambda r_R : -50*r_R+35
-    # B:float=6
-    # J:float=2
-    # R:float=0.7
-    # pitch:float=46
-    # r_R_H:float=0.25
-    # n_elem:int=100
-    # polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
-    # polar = 'ARAD8pct_polar.txt'
-    # pitch_ref:float=0
-    # dist_elem:str="uniform"
-    # Uinf = 60
-    # n=1200
-    # Omega = n*2*np.pi/60
-
-    # WIND TURBINE
-    R:float=50
-    c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
-    twst_func:Callable = lambda r_R : 14*(1-r_R)
-    B:float=3
-    J:float=np.pi/8
-    pitch:float=-2
-    r_R_H:float=0.20
-    n_elem:int=1000
-    polar='DU95W180.txt'
+    c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
+    twst_func:Callable = lambda r_R : -50*r_R+35
+    B:float=6
+    R:float=0.7
+    pitch:float=46
+    r_R_H:float=0.25
+    n_elem:int=100
+    polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
+    polar = 'ARAD8pct_polar.txt'
     pitch_ref:float=0
     dist_elem:str="uniform"
-    Uinf = 10
-    TSR = 8
-    Omega = TSR*Uinf/R
+    Uinf = 60
+    n=1200
+    Omega = n*2*np.pi/60
+
+    rotor = Rotor(
+        Uinf=Uinf,
+        Omega=Omega,
+        c_R_func=c_R_func, 
+        twst_func=twst_func,
+        B=B,
+        R=R,
+        pitch=pitch,
+        r_R_H=r_R_H,
+        n_elem=n_elem,
+        polar_path=polar,
+        isPropeller=True)
+
+    # # WIND TURBINE
+    # R:float=50
+    # c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
+    # twst_func:Callable = lambda r_R : 14*(1-r_R)
+    # B:float=3
+    # J:float=np.pi/8
+    # pitch:float=-2
+    # r_R_H:float=0.20
+    # n_elem:int=1000
+    # polar='DU95W180.txt'
+    # pitch_ref:float=0
+    # dist_elem:str="uniform"
+    # Uinf = 10
+    # TSR = 8
+    # Omega = TSR*Uinf/R
     
 
 
@@ -154,4 +166,6 @@ if __name__ == "__main__":
         n_elem=n_elem,
         polar_path=polar,
         isPropeller=False)
+    
+    
     rotor.plot_radial()

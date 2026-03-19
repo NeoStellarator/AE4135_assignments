@@ -129,8 +129,8 @@ class Annuli:
             D = 0.5*W2*Cd*self.chord
 
             # rotate forces
-            Fx = (L*np.cos(phi)+D*np.sin(phi))
-            Fy = (L*np.sin(phi)-D*np.cos(phi))
+            Fx = (L*np.cos(phi)+D*np.sin(phi)) #N
+            Fy = (L*np.sin(phi)-D*np.cos(phi)) #T
             
             Fx_annuli = Fx*self.R*(self.r2_R-self.r1_R)*self.B
             CT = Fx_annuli/(0.5*self.A*self.Uinf**2)
