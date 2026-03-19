@@ -94,7 +94,8 @@ class Annuli:
             Ux = self.Uinf*(1+a)
             Uy = (1-aline)*self.Omega*self.r_R*self.R
             # compute angles
-            phi = np.arctan((1/(self.TSR*self.r_R))*(1+a)/(1-aline))
+            # phi = np.arctan((1/(self.TSR*self.r_R))*(1+a)/(1-aline))
+            phi = np.arctan2(Ux,Uy)
             if self.isPropeller:
                 alpha_deg =self.beta - np.rad2deg(phi)
             else:
@@ -122,7 +123,7 @@ class Annuli:
             RHS_2 = self.sig/(4*f*np.sin(phi)*np.cos(phi))*Cy
 
             # a_new = RHS_1/(1+RHS_1)
-            aline_new = RHS_2/(1+   RHS_2)
+            aline_new = RHS_2/(1+ RHS_2)
             CT = Cx*self.sig/(f*np.sin(phi)**2) #This definition was different
 
             a_new = self.ainduction(CT)
