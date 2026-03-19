@@ -154,18 +154,18 @@ if __name__ == "__main__":
     
 
 
-    rotor = Rotor(
-        Uinf=Uinf,
-        Omega=Omega,
-        c_R_func=c_R_func, 
-        twst_func=twst_func,
-        B=B,
-        R=R,
-        pitch=pitch,
-        r_R_H=r_R_H,
-        n_elem=n_elem,
-        polar_path=polar,
-        isPropeller=False)
+    # rotor = Rotor(
+    #     Uinf=Uinf,
+    #     Omega=Omega,
+    #     c_R_func=c_R_func, 
+    #     twst_func=twst_func,
+    #     B=B,
+    #     R=R,
+    #     pitch=pitch,
+    #     r_R_H=r_R_H,
+    #     n_elem=n_elem,
+    #     polar_path=polar,
+    #     isPropeller=False)
     
     
     rotor.plot_radial()

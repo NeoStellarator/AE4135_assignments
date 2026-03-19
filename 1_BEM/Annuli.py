@@ -107,17 +107,23 @@ class Annuli:
         while (max(np.abs(a - a_old), np.abs(aline - aline_old)) > tol
        and i < iter_max):
             
-            Ux = self.Uinf*(1-a)
-            Uy = (1+aline)*self.Omega*self.r_R*self.R
+            # Ux = self.Uinf*(1-a)
+            # Uy = (1+aline)*self.Omega*self.r_R*self.R
 
             # compute angles
-            phi = np.arctan2(Ux,Uy)
+            
             # phi = np.arctan((1/(self.TSR*self.r_R))*(1-a)/(1+aline))
             if self.isPropeller:
+                Ux = self.Uinf*(1+a)
+                Uy = (1-aline)*self.Omega*self.r_R*self.R
+                phi = np.arctan2(Ux,Uy)
                 alpha_deg =self.beta - np.rad2deg(phi)
             else:
+                Ux = self.Uinf*(1-a)
+                Uy = (1+aline)*self.Omega*self.r_R*self.R
+                phi = np.arctan2(Ux,Uy)
                 alpha_deg = (np.rad2deg(phi) - self.beta)
-
+            
             # find forces
             Cl = self.calculate_Cl(alpha_deg)
             Cd = self.calculate_Cd(alpha_deg)
@@ -137,7 +143,11 @@ class Annuli:
 
 
             a_new= self.ainduction(CT)
-            aline_new = Fy*self.B/(2*np.pi*self.Uinf*(1-a)*self.Omega*2*(self.r_R*self.R)**2)
+            if self.isPropeller:
+                aline_new = Fy*self.B/(2*np.pi*self.Uinf*(1+a)*self.Omega*2*(self.r_R*self.R)**2)
+            else:
+                aline_new = Fy*self.B/(2*np.pi*self.Uinf*(1-a)*self.Omega*2*(self.r_R*self.R)**2)
+            
                        
             # apply hub/tip loss correction
             f = tip_correction.calculate_prandtl_correction(
