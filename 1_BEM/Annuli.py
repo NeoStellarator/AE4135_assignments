@@ -17,9 +17,15 @@ class Annuli:
                  r_R_H:float,
                  R:float,
                  B:float,
+                 Uinf: float,
+                 Omega:float,
+                 r1_R:float,
+                 r2_R:float,
+                 r_R_H:float,
+                 R:float,
+                 B:float,
                  c_R:float,
                  beta:float,
-                 rho:float,
                  a0:float=0,
                  aline0:float=0,
                  isPropeller:bool = False):
@@ -39,7 +45,7 @@ class Annuli:
         self.chord = c_R*R
         self.A = np.pi*((r2_R *R )**2- (r1_R*R)**2)
         self.isPropeller = isPropeller
-        self.rho=rho
+
         # iteration initialization
         self.a0     = a0
         self.aline0 = aline0
@@ -94,15 +100,17 @@ class Annuli:
         """Method to compute Cd at a given angle of attack"""
         return np.interp(alpha,self.polar_data["alpha"],self.polar_data["Cd"])
     def ainduction(self, CT):
-
+        """
+        This function calculates the induction factor 'a' as a function of thrust coefficient CT 
+        including Glauert's correction
+        """
         CT1=1.816
-
-        CT2=2*np.sqrt(CT1) -CT1
+        CT2=2*np.sqrt(CT1)-CT1
         # print(CT)
         if CT>=CT2:
-            a = 1 + (CT-CT1 )/(4*(np.sqrt(CT1)-1))
+            a = 1 + (CT-CT1)/(4*(np.sqrt(CT1)-1))
         if CT<CT2:
-            a = 0.5-0.5 *np.sqrt(1-CT)
+            a = 0.5-0.5*np.sqrt(1-CT)
         return a
     
     def run_iteration(self, tol=1e-5, iter_max=1e5):
@@ -119,15 +127,10 @@ class Annuli:
         while (max(np.abs(a-a_old)/(a_old if a_old !=0 else 1), 
                   np.abs(aline-aline_old)/(aline_old if aline_old !=0 else 1)) > tol
                 and i<iter_max):
-            
-            self.a_hist.append(a)
-            self.aline_hist.append(aline) 
-
             Ux = self.Uinf*(1+a)
             Uy = (1-aline)*self.Omega*self.r_R*self.R
             # compute angles
-            # phi = np.arctan((1/(self.TSR*self.r_R))*(1+a)/(1-aline))
-            phi = np.arctan2(Ux,Uy)
+            phi = np.arctan((1/(self.TSR*self.r_R))*(1+a)/(1-aline))
             if self.isPropeller:
                 alpha_deg =self.beta - np.rad2deg(phi)
             else:
@@ -137,42 +140,24 @@ class Annuli:
         Cl = self.calculate_Cl(alpha_deg)
         Cd = self.calculate_Cd(alpha_deg)
 
-        # rotate forces
-        Cx = Cl*np.cos(phi)-Cd*np.sin(phi)
-        Cy = Cl*np.sin(phi)+Cd*np.cos(phi)
-        
-        # calculate the tip correction
-        F = tip_correction.ning_correction(self.r_R,self.r_R_H,self.B, phi)
-        # F = tip_correction.calculate_prandtl_correction3(
-        #     B=self.B,
-        #     phi=phi,
-        #     r_R=self.r_R,
-        #     r_R_H=self.r_R_H)
-        
-        # blade element momentum
-        #   tangential
-        kline = Cy*self.sig/(4*F*np.sin(phi)*np.cos(phi)) # Ning (Eq 42)
-        aline = kline/(1+kline)
-        
-        #   axial
-        k = Cx*self.sig/(4*F*(np.sin(phi))**2)
-        a = self.calculate_induction(k, F)
-
-        # compute other coefficients
-        Vy_Vx = self.TSR*self.r_R
-        CT = Cx*self.sig*((1+a)/np.sin(phi))**2 # Ning (27)
-        CQ = Cy*self.sig*((1-aline)/np.cos(phi))*((1+a)/np.sin(phi))*Vy_Vx # Ning (Eq 28) 
-        CP = 2*np.pi*CQ
-        Ca = Cy #is this azimuthal?
-
-        residual = np.sin(phi)/(1+a) - 1/Vy_Vx*np.cos(phi)/(1-aline) # Ning (Eq 70)
+            # rotate forces
+            Cx = Cl*np.cos(phi)+Cd*np.sin(phi)
+            Cy = Cl*np.sin(phi)-Cd*np.cos(phi)
             
+            # compute other coefficients
+            Ct = Cx*self.sig*((1-a)/np.sin(phi))**2
+            Ca = Cy*self.sig*((1-a)/np.sin(phi))**2
+            Cq = Ca*self.r_R
+            Cp = Cx*self.sig*((1-a)/np.sin(phi))**3
+
             # compute the new induction factors
             # RHS_1 = self.sig/(4*np.sin(phi)**2)*Cx
             # apply hub/tip loss correction
-            f = tip_correction.calculate_prandtl_correction2(
+            f = tip_correction.calculate_prandtl_correction_3(
                 B=self.B,
                 TSR=self.TSR,
+                a=abs(a),
+                a_line = abs(aline),
                 a=abs(a),
                 a_line = abs(aline),
                 r_R=self.r_R,
@@ -181,10 +166,9 @@ class Annuli:
             RHS_2 = self.sig/(4*f*np.sin(phi)*np.cos(phi))*Cy
 
             # a_new = RHS_1/(1+RHS_1)
-            aline_new = RHS_2/(1+ RHS_2)
-            CT = (1-a)**2*Cx*self.sig/(f*np.sin(phi)**2) #hansen
-            CQ = (1-a)**2*Cy*self.sig/(f*np.sin(phi)**2)*self.r_R*self.R # This must be checked!!!!! TODO
-            CP = CQ*2*np.pi
+            aline_new = RHS_2/(1+   RHS_2)
+            CT = Cx*self.sig/(f*np.sin(phi)**2) #This definition was different
+
             a_new = self.ainduction(CT)
 
             
@@ -192,13 +176,13 @@ class Annuli:
             # a_new /= f
             # aline_new /= f 
 
-        self.phi, res = optimize.newton(self.calculate_residual, 
-                                        np.mean(self.phi_rng),
-                                        maxiter=1000,
-                                        # phi1, 
-                                        full_output=True)
+            # update the values of a
+            a_old = a
+            aline_old = aline
+                        
+            a = min(a_new*0.1 + a*0.9, 0.95)
+            aline = aline_new*0.1 + aline*0.9
 
-            
             # update iteration count
             i += 1
             if not res.converged:
@@ -229,20 +213,10 @@ class Annuli:
         self.Cy = Cy
         self.f  = f
         self.Ct = CT
-        self.Cq =CQ
-        self.Cp = CP
         self.a = a
         self.aline = aline
         self.Ux = Ux
         self.Uy= Uy
-    def calculate_integral(self):
-        Ux = self.Uinf*(1+self.a)
-        Uy = (1-self.aline)*self.Omega*self.r_R*self.R
-        w2 = Ux**2+Uy**2
-        thrust = 0.5 * self.Cx * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B
-        torque = 0.5 * self.Cy * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B * self.r_R*self.R
-        power = torque*self.Omega
-        return [thrust, torque, power]
 
 
 if __name__ == "__main__":
