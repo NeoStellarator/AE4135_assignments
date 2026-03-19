@@ -19,6 +19,7 @@ class Annuli:
                  B:float,
                  c_R:float,
                  beta:float,
+                 rho:float,
                  a0:float=0,
                  aline0:float=0,
                  isPropeller:bool = False):
@@ -38,30 +39,18 @@ class Annuli:
         self.chord = c_R*R
         self.A = np.pi*((r2_R *R )**2- (r1_R*R)**2)
         self.isPropeller = isPropeller
-
-        self.is_prop = is_prop # propeller or turbine option
+        self.rho=rho
+        # iteration initialization
+        self.a0     = a0
+        self.aline0 = aline0
 
         self.hist:Dict[str,List[float]] = dict()
         
         # read & store polar data
-        self.polar_data = self._load_polar_data(polar_path)
-
-        # compute bounds based on available data
-        a_rng = np.array([self.polar_data["alpha"].min(), 
-                          self.polar_data["alpha"].max()])
-        self.phi_rng = np.deg2rad(self.beta - a_rng)
-
-        # solve annuli
-        self.solve()
-
-
-    def _update_hist(self, snap:Dict[str,str])-> None:
-        """Method to update history"""
-        for k,v in snap.items():
-            if k in self.hist.keys():
-                self.hist[k].append(v)
-            else:
-                self.hist[k] = [v,]
+        self.polar_data=self._load_polar_data(polar_path)
+      
+        # perform the iteration
+        self.run_iteration()
 
     def _load_polar_data(self, polar_path:Path|str) -> Dict[str, np.ndarray]:
         """Function to read the polar data"""
@@ -206,7 +195,7 @@ class Annuli:
         self.a = self.hist["a"][-1]
         self.aline = self.hist["aline"][-1]
 
-        print(i)
+        # print(i)
         # save converged results
         self.phi = np.rad2deg(phi)
         self.alpha = alpha_deg
@@ -220,6 +209,13 @@ class Annuli:
         self.aline = aline
         self.Ux = Ux
         self.Uy= Uy
+    def calculate_forces(self):
+        Ux = self.Uinf*(1+self.a)
+        Uy = (1-self.aline)*self.Omega*self.r_R*self.R
+        w2 = Ux**2+Uy**2
+        thrust = 0.5 * self.Cx * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B
+        torque = 0.5 * self.Cy * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B * self.r_R*self.R
+        return [thrust, torque]
 
 
 if __name__ == "__main__":
