@@ -12,6 +12,13 @@ from globals import data_dir
 
 
 class Rotor:
+    def __init__(self,Uinf, Omega, c_R_func,twst_func, B, R, pitch, r_R_H,n_elem,polar_path,dist_elem='uniform',isPropeller = False):
+        self.Uinf = Uinf
+        self.Omega = Omega
+        self.c_R_func = c_R_func
+        self.twst_func = twst_func
+        self.B = B
+        self.R = R
     def __init__(
         self,
         # Geometry
@@ -38,8 +45,10 @@ class Rotor:
         self.c_R_func = c_R_func      
         self.twst_func = twst_func    
         self.pitch = pitch
+        self.r_R_H = r_R_H
+        self.n_elem = n_elem
         self.polar_path = polar_path
-
+        self.dist_elem = dist_elem
         self.isPropeller = isPropeller
 
         # Operating Conditions
@@ -55,71 +64,43 @@ class Rotor:
         
         if dist_elem == "uniform":
             rr = np.linspace(r_R_H, 1, n_elem+1)
-            self.r1_R_lst = rr[:-1]
-            self.r2_R_lst = rr[1:]
+            self.r1_R_lst = rr[1:]
+            self.r2_R_lst = rr[:-1]
+            self.r_R_lst = (rr[1:] + rr[:-1])/2
             
-            self.r_R = (rr[1:] + rr[:-1])/2
-            self.dr_R = rr[1:] - rr[:-1]
-            self.c_R = c_R_func(self.r_R)
-            self.beta = pitch + twst_func(self.r_R)
-        elif dist_elem == "cosine":
-            raise NotImplementedError("TODO!")
-
-
-        # Evaluation of annuli
-        self.annuli_lst = [Annuli(polar_path=polar_path, 
-                 r_R=self.r_R[i],
-                 c_R=self.c_R[i],
-                 beta=self.beta[i],
-                 B=self.B, 
-                 J=self.J,
+            self.c_R_lst = c_R_func(self.r_R_lst)
+            self.beta_lst = pitch + twst_func(self.r_R_lst)
+        
+        self.annuli_lst = [
+            
+            Annuli(polar_path=polar_path,
+                   Uinf = Uinf,
+                   Omega= Omega,
+                 r1_R=self.r1_R_lst[i],
+                 r2_R=self.r2_R_lst[i],
                  r_R_H=self.r_R_H,
-                 is_prop=self.isPropeller) for i in range(n_elem)]
-        
+                 R=self.R,
+                 B=self.B,
+                 c_R=self.c_R_lst[i],
+                 beta=self.beta_lst[i],
+                 isPropeller = self.isPropeller,
+                 a0=1/3,
+                 aline0=0) for i in range(n_elem)]
+    def plot_radial(self):
+        self.phi_lst   = [an.phi   for an in self.annuli_lst]
+        self.alpha_lst = [an.alpha for an in self.annuli_lst]
+        self.Cl_lst = [an.Cl for an in self.annuli_lst]
+        self.Cd_lst = [an.Cd for an in self.annuli_lst]
+        self.Cx_lst = [an.Cx for an in self.annuli_lst]
+        self.Fy_lst = [an.Cy for an in self.annuli_lst]
+        self.f_lst  = [an.f  for an in self.annuli_lst]
+        self.CT_lst = [an.Ct for an in self.annuli_lst]
+        self.a_lst  = [an.a  for an in self.annuli_lst]
+        self.aline_lst = [an.aline for an in self.annuli_lst]
+        self.Ux_lst = [an.Ux for an in self.annuli_lst]
+        self.Uy_lst = [an.Uy for an in self.annuli_lst]
 
-        self.phi   = np.array([an.phi   for an in self.annuli_lst])
-        self.alpha = np.array([an.alpha for an in self.annuli_lst])
-        self.Cl    = np.array([an.Cl for an in self.annuli_lst])
-        self.Cd    = np.array([an.Cd for an in self.annuli_lst])
-        self.Cx    = np.array([an.Cx for an in self.annuli_lst])
-        self.Cy    = np.array([an.Cy for an in self.annuli_lst])
-        self.f     = np.array([an.F  for an in self.annuli_lst])
-        self.Ct    = np.array([an.CT for an in self.annuli_lst])
-        self.Cq    = np.array([an.CQ for an in self.annuli_lst])
-        self.Cp    = np.array([an.CP for an in self.annuli_lst])
-        self.a     = np.array([an.a  for an in self.annuli_lst])
-        self.aline = np.array([an.aline for an in self.annuli_lst])
-
-        self.W     = np.sqrt((self.Vinf*(1+self.a))**2 + 
-                             (self.Ome*self.r_R*self.R*(1-self.aline))**2)
-        self.q_loc = 0.5*self.rho*self.W**2
-
-        # force/moment distributions
-        self.Np    = self.Cx*self.q_loc*self.c_R*self.R  # normal force per unit length (for one blade)
-        self.Tp    = self.Cy*self.q_loc*self.c_R*self.R  # tangential force per unit length (for one blade)
-        self.Qp    = self.Tp*self.r_R*self.R             # torque moment per unit length (for one blade)
-        
-        # net forces/moments
-        self.T     = self.B*np.trapezoid(self.Np, self.r_R*self.R)
-        self.A     = self.B*np.trapezoid(self.Tp, self.r_R*self.R)
-        self.Q     = self.B*np.trapezoid(self.Qp, self.r_R*self.R)
-        self.P     = self.T*self.Ome
-
-
-        # force/moment coefficients
-        self.CT  = self.T/(self.rho*self.n**2*(self.R*2)**4)
-        self.TC  = self.T/(self.rho*self.Vinf**2*(self.R*2)**2)
-        self.CP  = self.T/(self.rho*self.n**3*(self.R*2)**5)
-        self.PC  = self.P/(self.rho*self.Vinf**3*(self.R*2)**2)
-        self.CQ  = self.Q/(self.rho*self.n**2*(self.R*2)**5)
-        self.QC  = self.Q/(self.rho*self.Vinf**2*(self.R*2)**3)
-        self.eta = self.TC/self.PC
-    
-    def plot_check(self):
-
-        fig, axs = plt.subplots(2, 2)
-        axs = list(np.ravel(axs))
-        axs : List[Axes]
+        fig, axs = plt.subplots(3, 2)
 
         # (1) phi & alpha
         ax = axs[0]
@@ -153,89 +134,75 @@ class Rotor:
         ax.legend()
         ax.grid()
 
+        ax = axs[2, 0]
+        ax.plot(self.r_R_lst, self.Ux_lst, label=r'$U_x$')
+        ax.plot(self.r_R_lst, self.Uy_lst, label=r'$U_y$')
+        ax.set_title("Velocities")
+        ax.legend()
+        ax.grid()
+
         plt.tight_layout()
         plt.show()
-
-    def print_geometry(self, plot=False, axs:List[Axes]|None=None, **kwargs):
-        for i in range(self.n_elem):
-            print(self.r_R[i],self.c_R[i],self.beta[i])
-
-        if plot:
-            if axs is None:
-                fig, axs = plt.subplots()
-
-            axs[0].plot(self.r_R, self.c_R, **kwargs)
-            axs[1].plot(self.r_R, self.beta, **kwargs)
-
-            axs[0].set_ylabel(r'$c/R$ [-]')
-            axs[1].set_ylabel(r'$\beta$ [deg]')
-
-            for ax in axs:
-                ax.set_xlabel(r'$r/R$ [-]')
-                ax.grid(True)
-                ax.legend()
-
-            plt.show()
-
-    
-    def export_dist(self, file_path:Path):
-        # table with distribution
-        save_df = pd.DataFrame()
-        save_df["r_R"]     = self.r_R
-        save_df["alpha"]   = self.alpha
-        save_df["inflow"]  = self.phi
-        save_df["a"]       = self.a
-        save_df["a_prime"] = self.aline
-        save_df["Ct"]      = self.CT
-        save_df["Cx"]      = self.Cx
-        save_df["Cy"]      = self.Cy
-        save_df["Cq"]      = self.CQ
-        save_df["Cp"]      = self.CP
-        save_df.to_csv(file_path, index=False)
-
-    def export_hist(self, file_path:Path, vname:str='CT'):
-        # table with history
-        hist_df = pd.DataFrame()
-        hist_df["r_R"] = self.r_R
-
-        v_histories = [getattr(an, vname) for an in self.annuli_lst]
-    
-        max_len = max(len(h) for h in v_histories)
-        padded = [h + [np.nan] * (max_len - len(h)) for h in v_histories]
-
-        hist_df = pd.concat([
-            hist_df,
-            pd.DataFrame(padded, columns=[f"iter_{i}" for i in range(max_len)])
-        ], axis=1)
-
-        hist_df.to_csv(file_path, index=False)
-
-
-
+        
 
 if __name__ == "__main__":
     # Propeller
+    c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
+    twst_func:Callable = lambda r_R : -50*r_R+35
+    B:float=6
+    R:float=0.7
+    pitch:float=46
+    r_R_H:float=0.25
+    n_elem:int=100
+    polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
+    polar = 'ARAD8pct_polar.txt'
+    pitch_ref:float=0
+    dist_elem:str="uniform"
+    Uinf = 60
+    n=1200
+    Omega = n*2*np.pi/60
 
     rotor = Rotor(
-        # Geometry definition
-        c_R_func  = lambda r_R : 0.18-0.06*r_R,
-        twst_func = lambda r_R : -50*r_R+35,
-        pitch = 45,
-        B     = 6,
-        R     = 0.7,
-        r_R_H = 0.25,
-        polar_path = data_dir.joinpath('ARAD8pct_polar.txt'),
-        # Operating condition
-        J = 1.2,
-        Vinf = 60,
-        rho = 1.067,
-        # Discretizaiton
-        n_elem = 100,
-        dist_elem = 'uniform',
-        isPropeller = True)
+        Uinf=Uinf,
+        Omega=Omega,
+        c_R_func=c_R_func, 
+        twst_func=twst_func,
+        B=B,
+        R=R,
+        pitch=pitch,
+        r_R_H=r_R_H,
+        n_elem=n_elem,
+        polar_path=polar,
+        isPropeller=True)
 
+    # # WIND TURBINE
+    # R:float=50
+    # c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
+    # twst_func:Callable = lambda r_R : 14*(1-r_R)
+    # B:float=3
+    # J:float=np.pi/8
+    # pitch:float=-2
+    # r_R_H:float=0.20
+    # n_elem:int=1000
+    # polar='DU95W180.txt'
+    # pitch_ref:float=0
+    # dist_elem:str="uniform"
+    # Uinf = 10
+    # TSR = 8
+    # Omega = TSR*Uinf/R
 
-    # rotor.print_geometry()
-    # print(rotor.calculate_integral())
-    rotor.plot_check()
-    # rotor.export("propeller_radial_data.csv")
+    # rotor = Rotor(
+    #     Uinf=Uinf,
+    #     Omega=Omega,
+    #     c_R_func=c_R_func, 
+    #     twst_func=twst_func,
+    #     B=B,
+    #     R=R,
+    #     pitch=pitch,
+    #     r_R_H=r_R_H,
+    #     n_elem=n_elem,
+    #     polar_path=polar,
+    #     isPropeller=False)
+    
+    
+    rotor.plot_radial()
