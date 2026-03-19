@@ -100,17 +100,15 @@ class Annuli:
         """Method to compute Cd at a given angle of attack"""
         return np.interp(alpha,self.polar_data["alpha"],self.polar_data["Cd"])
     def ainduction(self, CT):
-        """
-        This function calculates the induction factor 'a' as a function of thrust coefficient CT 
-        including Glauert's correction
-        """
+
         CT1=1.816
-        CT2=2*np.sqrt(CT1)-CT1
+
+        CT2=2*np.sqrt(CT1) -CT1
         # print(CT)
         if CT>=CT2:
-            a = 1 + (CT-CT1)/(4*(np.sqrt(CT1)-1))
+            a = 1 + (CT-CT1 )/(4*(np.sqrt(CT1)-1))
         if CT<CT2:
-            a = 0.5-0.5*np.sqrt(1-CT)
+            a = 0.5-0.5 *np.sqrt(1-CT)
         return a
     
     def run_iteration(self, tol=1e-5, iter_max=1e5):
@@ -154,7 +152,7 @@ class Annuli:
             # compute the new induction factors
             # RHS_1 = self.sig/(4*np.sin(phi)**2)*Cx
             # apply hub/tip loss correction
-            f = tip_correction.calculate_prandtl_correction_3(
+            f = tip_correction.calculate_prandtl_correction2(
                 B=self.B,
                 TSR=self.TSR,
                 a=abs(a),
