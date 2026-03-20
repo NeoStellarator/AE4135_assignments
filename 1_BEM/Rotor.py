@@ -2,6 +2,7 @@ from typing import Callable, List
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from Annuli import Annuli
@@ -13,7 +14,7 @@ from globals import main_dir
 class Rotor:
     def __init__(self,Uinf, Omega, c_R_func,twst_func, B, R, pitch, r_R_H,n_elem,polar_path,H=2000,dist_elem='uniform',isPropeller = False):
         self.Uinf = Uinf
-        self.Omega = Omega
+        self.Omega = Omega #rev/m
         self.c_R_func = c_R_func
         self.twst_func = twst_func
         self.B = B
@@ -59,9 +60,11 @@ class Rotor:
         self.Cl_lst = [an.Cl for an in self.annuli_lst]
         self.Cd_lst = [an.Cd for an in self.annuli_lst]
         self.Cx_lst = [an.Cx for an in self.annuli_lst]
-        self.Fy_lst = [an.Cy for an in self.annuli_lst]
+        self.Cy_lst = [an.Cy for an in self.annuli_lst]
         self.f_lst  = [an.f  for an in self.annuli_lst]
         self.CT_lst = [an.Ct for an in self.annuli_lst]
+        self.CQ_lst = [an.Cq for an in self.annuli_lst]
+        self.CP_lst = [an.Cp for an in self.annuli_lst]
         self.a_lst  = [an.a  for an in self.annuli_lst]
         self.aline_lst = [an.aline for an in self.annuli_lst]
         self.Ux_lst = [an.Ux for an in self.annuli_lst]
@@ -111,23 +114,65 @@ class Rotor:
         plt.tight_layout()
         plt.show()
     def calculate_integral(self):
-        integral_values = np.array([an.calculate_forces() for an in self.annuli_lst])
-        print(integral_values)
+        integral_values = np.array([an.calculate_integral() for an in self.annuli_lst])
         total_thrust = sum(integral_values[:,0])
         total_torque = sum(integral_values[:,1])
-        n= self.Omega/(2*np.pi)*60
+        total_power = sum(integral_values[:,2])
+        n= self.Omega/(2*np.pi) #rev/s
         total_CT = total_thrust/(self.rho*n**2*(2*self.R)**4)
-        return total_thrust, total_torque, total_CT
+        total_CQ = total_torque/(self.rho*n**2*(2*self.R)**5)
+        total_CP = total_torque/(self.rho*n**3*(2*self.R)**5)
+        return total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP
     def print_geometry(self):
         for i in range(self.n_elem):
             print(self.r_R_lst[i],self.c_R_lst[i],self.beta_lst[i])
+    def export(self,file_path):
+        save_df = pd.DataFrame()
+        save_df["r_R"] = self.r_R_lst
+        save_df["alpha"] = self.alpha_lst
+        save_df["inflow"] = self.phi_lst
+        save_df["a"] = self.a_lst
+        save_df["a_prime"] = self.aline_lst
+        save_df["Ct"] = self.CT_lst
+        save_df["Cx"] =self.Cx_lst
+        save_df["Cy"] =self.Cy_lst
+        save_df["Cq"]=self.CQ_lst
+        save_df["Cp"]=self.CP_lst
+        save_df.to_csv(file_path,index=False)
 
+        history_a_df = pd.DataFrame()
+        history_a_df["r_R"] = self.r_R_lst
+        a_histories = [an.a_hist for an in self.annuli_lst]
         
+
+        max_len = max(len(h) for h in a_histories)
+
+        padded = [h + [np.nan] * (max_len - len(h)) for h in a_histories]
+        history_a_df = pd.concat([
+            history_a_df,
+            pd.DataFrame(padded, columns=[f"iter_{i}" for i in range(max_len)])
+        ], axis=1)
+        history_a_df.to_csv("hist_a_"+file_path,index=False)
+
+        history_aline_df = pd.DataFrame()
+        history_aline_df["r_R"] = self.r_R_lst
+        aline_histories = [an.aline_hist for an in self.annuli_lst]
+
+        max_len = max(len(h) for h in aline_histories)
+
+        padded = [h + [np.nan] * (max_len - len(h)) for h in aline_histories]
+        history_aline_df = pd.concat([
+            history_aline_df,
+            pd.DataFrame(padded, columns=[f"iter_{i}" for i in range(max_len)])
+        ], axis=1)
+
+        history_aline_df.to_csv("hist_aline_"+file_path,index=False)
+
 
 if __name__ == "__main__":
     # Propeller
     c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
-    twst_func:Callable = lambda r_R : -50*r_R+35+60
+    twst_func:Callable = lambda r_R : -50*r_R+35
     B:float=6
     R:float=0.7
     pitch:float=46
@@ -186,4 +231,5 @@ if __name__ == "__main__":
     # rotor.print_geometry()
     print(rotor.calculate_integral())
     rotor.plot_radial()
+    rotor.export("propeller_radial_data.csv")
     
