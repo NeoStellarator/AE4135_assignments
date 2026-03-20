@@ -127,6 +127,10 @@ class Annuli:
         while (max(np.abs(a-a_old)/(a_old if a_old !=0 else 1), 
                   np.abs(aline-aline_old)/(aline_old if aline_old !=0 else 1)) > tol
                 and i<iter_max):
+            
+            self.a_hist.append(a)
+            self.aline_hist.append(aline) 
+
             Ux = self.Uinf*(1+a)
             Uy = (1-aline)*self.Omega*self.r_R*self.R
             # compute angles
@@ -168,8 +172,9 @@ class Annuli:
 
             # a_new = RHS_1/(1+RHS_1)
             aline_new = RHS_2/(1+ RHS_2)
-            CT = Cx*self.sig/(f*np.sin(phi)**2) #This definition was different
-
+            CT = (1-a)**2*Cx*self.sig/(f*np.sin(phi)**2) #hansen
+            CQ = (1-a)**2*Cy*self.sig/(f*np.sin(phi)**2)*self.r_R*self.R # This must be checked!!!!! TODO
+            CP = CQ*2*np.pi
             a_new = self.ainduction(CT)
 
             
@@ -184,6 +189,7 @@ class Annuli:
             a = min(a_new*0.1 + a*0.9, 0.95)
             aline = aline_new*0.1 + aline*0.9
 
+            
             # update iteration count
             i += 1
 
@@ -197,17 +203,20 @@ class Annuli:
         self.Cy = Cy
         self.f  = f
         self.Ct = CT
+        self.Cq =CQ
+        self.Cp = CP
         self.a = a
         self.aline = aline
         self.Ux = Ux
         self.Uy= Uy
-    def calculate_forces(self):
+    def calculate_integral(self):
         Ux = self.Uinf*(1+self.a)
         Uy = (1-self.aline)*self.Omega*self.r_R*self.R
         w2 = Ux**2+Uy**2
         thrust = 0.5 * self.Cx * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B
         torque = 0.5 * self.Cy * self.rho * w2 * self.chord * (self.r2_R-self.r1_R)*self.R * self.B * self.r_R*self.R
-        return [thrust, torque]
+        power = torque*self.Omega
+        return [thrust, torque, power]
 
 
 if __name__ == "__main__":
