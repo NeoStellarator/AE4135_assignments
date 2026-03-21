@@ -33,6 +33,17 @@ def calculate_prandtl_correction2(B:float,
     f_tip  = 2/np.pi*np.arccos(np.exp(d*(1-r_R)))
     f_root = 2/np.pi*np.arccos(np.exp(d*(r_R-r_R_H)))
     return f_tip*f_root
+def ning_correction(r_R, r_R_hub, B, phi):
+    R_r = 1/r_R
+    f_tip = B/2 * (R_r-1)/abs(np.sin(phi))
+    F_tip = 2/np.pi * np.arccos(np.exp(-f_tip))
+
+    f_hub = B/2 * (r_R/r_R_hub-1)/abs(np.sin(phi))
+    F_hub = 2/np.pi * np.arccos(np.exp(-f_hub))
+    F_hub = max(F_hub,1E-6)
+    F_tip = max(F_tip,1E-6)
+    return F_tip*F_hub
+    
 
 
 
