@@ -168,6 +168,98 @@ class Rotor:
 
         history_aline_df.to_csv("hist_aline_"+file_path,index=False)
 
+    def write_Total_res_for_J(self, target_row, filename='results.csv'):
+        """
+        Writes results to a specific row in the CSV file (1-indexed, including headers).
+        Useful for overwriting or updating specific rows.
+        
+        Args:
+            target_row: Row number to write to (1 = headers, 2 = first data row, etc.)
+            filename: Name of the CSV file
+        
+        Returns:
+            tuple: The results from integral_function
+        """
+        import os
+        import csv
+        
+        # Get the results
+        total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP = self.calculate_integral()
+        J = self.Uinf/(self.Omega * 60 * self.R / np.pi)
+        
+        # Prepare the data row (without timestamp as per your CSV format)
+        new_row = [self.R, J, total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP]
+        
+        # Headers to use
+        headers = [
+            'R',
+            'J (Advance Ratio)',
+            'Total Thrust',
+            'Total Torque',
+            'Total Power',
+            'CT (Thrust Coefficient)',
+            'CQ (Torque Coefficient)',
+            'CP (Power Coefficient)'
+        ]
+        
+        # If file exists and we're targeting a specific row
+        if os.path.isfile(filename):
+            # Read all existing rows
+            with open(filename, 'r', newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                rows = list(reader)
+            
+            # Check if headers exist (first row should contain text, not numbers)
+            # This is a simple check - you might want to make it more robust
+            if len(rows) == 0 or (len(rows[0]) > 0 and isinstance(rows[0][0], str) and 'R' in rows[0][0]):
+                # Headers exist, target_row should be >= 2 for data rows
+                if target_row < 2:
+                    print(f"Warning: Headers exist, target_row should be >= 2. Setting to row 2.")
+                    target_row = 2
+            else:
+                # No headers, we need to insert them
+                # Insert headers at row 1 and shift everything down
+                rows.insert(0, headers)
+                # Adjust target_row since we added a header row
+                target_row += 1
+            
+            # Ensure we have enough rows
+            while len(rows) < target_row:
+                rows.append([])
+            
+            # Write to the specified row (adjusting for 0-indexing)
+            rows[target_row - 1] = new_row
+            
+            # Write everything back
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(rows)
+        
+        else:
+            # Create new file with headers and write to specified row
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                
+                # Write headers on row 1
+                writer.writerow(headers)
+                
+                # Fill empty rows until we reach target_row
+                # If target_row is 1, we'd be overwriting headers, so adjust
+                if target_row == 1:
+                    print(f"Warning: target_row=1 would overwrite headers. Setting to row 2.")
+                    target_row = 2
+                
+                # Fill rows from 2 to target_row-1 with empty rows
+                for i in range(2, target_row):
+                    writer.writerow([])
+                
+                # Write the data row
+                writer.writerow(new_row)
+        
+        # print(f"Results written to row {target_row} in {filename}")
+
+
+
 
 if __name__ == "__main__":
     # Propeller
@@ -179,25 +271,31 @@ if __name__ == "__main__":
     r_R_H:float=0.25
     n_elem:int=100
     polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
-    polar = 'ARAD8pct_polar.txt'
+    polar = '1_BEM/ARAD8pct_polar.txt'
     pitch_ref:float=0
     dist_elem:str="uniform"
     Uinf = 60
-    n=1200
-    Omega = n*2*np.pi/60
+    J = 2
+    
 
-    rotor = Rotor(
-        Uinf=Uinf,
-        Omega=Omega,
-        c_R_func=c_R_func, 
-        twst_func=twst_func,
-        B=B,
-        R=R,
-        pitch=pitch,
-        r_R_H=r_R_H,
-        n_elem=n_elem,
-        polar_path=polar,
-        isPropeller=True)
+    J_lst = np.linspace(1,4,10)
+    for i,j in enumerate(J_lst):
+        n=Uinf/(j*2*R)
+        Omega = n*2*np.pi/60
+        rotor = Rotor(
+            Uinf=Uinf,
+            Omega=Omega,
+            c_R_func=c_R_func, 
+            twst_func=twst_func,
+            B=B,
+            R=R,
+            pitch=pitch,
+            r_R_H=r_R_H,
+            n_elem=n_elem,
+            polar_path=polar,
+            isPropeller=True)
+        print(rotor.calculate_integral())
+        rotor.write_Total_res_for_J(i+1,'results.csv')
 
     # # WIND TURBINE
     # R:float=50
@@ -229,7 +327,10 @@ if __name__ == "__main__":
     #     isPropeller=False)
     
     # rotor.print_geometry()
-    print(rotor.calculate_integral())
-    rotor.plot_radial()
-    rotor.export("propeller_radial_data.csv")
+    # print(rotor.calculate_integral())
+    # rotor.plot_radial()
+    # rotor.export("propeller_radial_data.csv")
+    
+
+    
     
