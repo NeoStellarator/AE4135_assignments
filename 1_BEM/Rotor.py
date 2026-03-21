@@ -20,8 +20,8 @@ class Rotor:
         B,
         J,
         r_R_H,
+        polar_path,
         n_elem=100,
-        polar_path='ARAD8pct_polar.txt',
         dist_elem='uniform',
         isPropeller=False
     ):
@@ -56,6 +56,7 @@ class Rotor:
                  B=B, 
                  J=J,
                  r_R_H=r_R_H) for i in range(n_elem)]
+
     def plot_radial(self):
         self.phi_lst   = [an.phi   for an in self.annuli_lst]
         self.alpha_lst = [an.alpha for an in self.annuli_lst]
@@ -71,7 +72,7 @@ class Rotor:
         self.aline_lst = [an.aline for an in self.annuli_lst]
 
         fig, axs = plt.subplots(3, 2)
-
+        
         # (1) phi & alpha
         ax = axs[1, 1]
         ax.plot(self.r_R_lst, self.phi_lst, label=r'$\phi$')
@@ -140,6 +141,7 @@ class Rotor:
     def print_geometry(self):
         for i in range(self.n_elem):
             print(self.r_R_lst[i],self.c_R_lst[i],self.beta_lst[i])
+    
     def export(self,file_path):
         save_df = pd.DataFrame()
         save_df["r_R"] = self.r_R_lst
@@ -209,7 +211,7 @@ if __name__ == "__main__":
         J=J,
         r_R_H=r_R_H,
         n_elem=100,
-        polar_path='ARAD8pct_polar.txt',
+        polar_path=main_dir.joinpath('ARAD8pct_polar.txt'),
         dist_elem='uniform',
         isPropeller=True)
 

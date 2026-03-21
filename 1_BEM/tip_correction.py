@@ -58,7 +58,7 @@ def calculate_prandtl_correction3(B:float,
     d = -B/2*1/np.abs(np.sin(phi))
     f_tip  = 2/np.pi*np.arccos(np.exp(d*(1-r_R)))
     f_root = 2/np.pi*np.arccos(np.exp(d*(r_R-r_R_H)))
-    return f_tip*f_root
+    return max(f_tip*f_root, 1e-6)
 
 
 if __name__ == "__main__":
