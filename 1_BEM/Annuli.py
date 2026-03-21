@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Callable, Tuple
 import numpy as np
 from pathlib import Path
 
@@ -34,8 +34,14 @@ class Annuli:
         self.hist:Dict[str,List[float]] = dict()
         
         # read & store polar data
-        self.polar_data=self._load_polar_data(polar_path)
+        self.polar_data = self._load_polar_data(polar_path)
 
+        # compute bounds based on available data
+        a_rng = np.array([self.polar_data["alpha"].min(), 
+                          self.polar_data["alpha"].max()])
+        self.phi_rng = np.deg2rad(self.beta - a_rng)
+
+        print(np.rad2deg(self.phi_rng))
         # solve annuli
         self.solve()
 
@@ -80,16 +86,6 @@ class Annuli:
             return np.interp(-alpha, 
                              self.polar_data["alpha"], 
                              self.polar_data["Cd"])
-
-    def penalty(self, alpha):
-
-        alpha_outside = max(alpha - np.max(self.polar_data["alpha"]),
-                            np.min(self.polar_data["alpha"])-alpha)
-
-        if alpha_outside > 0:
-            return np.exp(alpha_outside)
-        else:
-            return 1
         
     def calculate_induction(self, k:float, F:float) -> float:
         # applies Glauert correction for heavily loaded blades
@@ -171,17 +167,22 @@ class Annuli:
         )
         self._update_hist(res)
 
-        return residual*self.penalty(alpha_deg)
+        return residual
     
     def solve(self):
 
         # Initial bound: 1st quadrant
-        phi0 = 1e-2
-        phi1 = np.pi/2
         self.phi, res = optimize.brentq(self.calculate_residual, 
-                                        phi0, 
-                                        phi1, 
+                                        self.phi_rng.min(), 
+                                        self.phi_rng.max(), 
                                         full_output=True)
+
+        # self.phi, res = optimize.newton(self.calculate_residual, 
+        #                                 np.pi/10,
+        #                                 maxiter=1000,
+        #                                 # phi1, 
+        #                                 full_output=True)
+
 
         print(res)
         # store results
@@ -204,7 +205,7 @@ if __name__ == "__main__":
     N = 1000
     r_R_list = np.linspace(0.25,1,N)
     c_R_list = 0.18 - r_R_list * 0.06
-    beta_list =  35 - 50*r_R_list
+    beta_list =  46+(35 - 50*r_R_list)
     B = 6
     J = 1.2
     idx = 500
@@ -222,11 +223,14 @@ if __name__ == "__main__":
 
     # K = np.linspace(-1, 1000, 100000)
     # a = [ai.calculate_induction(ki, 1) for ki in K]
-    # print(ai.a, ai.aline, ai.alpha, np.rad2deg(ai.phi), ai.beta)
+    print(ai.a, ai.aline, ai.alpha, np.rad2deg(ai.phi), ai.beta)
 
     fig, ax = plt.subplots()
 
-    # ax.plot(ai.hist["r"])
+    ax.plot(ai.hist["r"])
+    ax.plot(ai.hist["Cl"])
+    ax.plot(ai.hist["Cd"])
+
     # ax.plot(ai.hist["F"])
     # ax.plot(K, a)
     # ax.plot(ai.hist["a"])

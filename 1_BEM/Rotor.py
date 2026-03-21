@@ -105,12 +105,12 @@ class Rotor:
         ax.legend()
         ax.grid()
 
-        ax = axs[2, 0]
-        ax.plot(self.r_R_lst, self.Ux_lst, label=r'$U_x$')
-        ax.plot(self.r_R_lst, self.Uy_lst, label=r'$U_y$')
-        ax.set_title("Velocities")
-        ax.legend()
-        ax.grid()
+        # ax = axs[2, 0]
+        # ax.plot(self.r_R_lst, self.Ux_lst, label=r'$U_x$')
+        # ax.plot(self.r_R_lst, self.Uy_lst, label=r'$U_y$')
+        # ax.set_title("Velocities")
+        # ax.legend()
+        # ax.grid()
 
         plt.tight_layout()
         plt.show()
