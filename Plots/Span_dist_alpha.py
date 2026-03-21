@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 def alpha_span_dist(save=False):
-    df = pd.read_csv('Plots/BEM_randomdata.csv')
+    df = pd.read_csv('Plots\propeller_radial_data.csv')
     plt.plot( df['r_R'],df['alpha'], label='Angle of attack',color = 'pink')
     plt.plot( df['r_R'],df['inflow'], '--', label='Inflow angle',color = 'blue')
     plt.ylabel('Alpha and inflow angle')
