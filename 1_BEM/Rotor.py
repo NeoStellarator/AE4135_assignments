@@ -50,7 +50,7 @@ class Rotor:
             self.beta_lst = pitch + twst_func(self.r_R_lst)
         elif dist_elem == "cosine":
             raise NotImplementedError("TODO!")
-
+        
         self.annuli_lst = [Annuli(polar_path=polar_path, 
                  r_R=self.r_R_lst[i],
                  c_R=self.c_R_lst[i],
@@ -189,17 +189,17 @@ class Rotor:
 
 if __name__ == "__main__":
     # Propeller
-    c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
+    c_R_func:Callable = lambda r_R : 0.18-0.03*r_R
     twst_func:Callable = lambda r_R : -50*r_R+35
     B:float=6
     R:float=0.7
-    pitch:float=20
+    pitch:float=35
     r_R_H:float=0.25
     n_elem:int=100
     polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
     polar = 'ARAD8pct_polar.txt'
     dist_elem:str="uniform"
-    J=1.2
+    J=60/20/1.4
 
     rotor = Rotor(
         c_R_func=c_R_func,
@@ -212,7 +212,8 @@ if __name__ == "__main__":
         polar_path=main_dir.joinpath('ARAD8pct_polar.txt'),
         dist_elem='uniform',
         isPropeller=True)
-
+    thrust, azimuthal, torque, power=rotor.calculate_integral(R=0.7,Uinf=60,rho=1)
+    print(f"Thrust: {thrust:.2f}, azimuthal: {azimuthal:.2f}, torque: {torque:.2f}, power: {power:.2f}")
     # # WIND TURBINE
     # R:float=50
     # c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
