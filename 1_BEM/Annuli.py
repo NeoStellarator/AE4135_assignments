@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import numpy as np
 from pathlib import Path
 
@@ -18,7 +18,7 @@ class Annuli:
                  r_R_H:float=0,
                  is_prop:bool=True):
 
-        # save blade 
+        # save blade information
         self.r_R   = r_R   # blade radial coordinate
         self.r_R_H = r_R_H # hub radial coordinate
         self.c_R   = c_R   # blade chord 
@@ -28,7 +28,9 @@ class Annuli:
         self.TSR   = np.pi/J # tip speed ratio
         self.sig   = self.B/(2*np.pi)*self.c_R/self.r_R # blade solidity
 
-        self.is_prop = is_prop
+        self.is_prop = is_prop # propeller or turbine option
+
+        self.hist:Dict[str,List[float]] = dict()
         
         # read & store polar data
         self.polar_data=self._load_polar_data(polar_path)
@@ -36,6 +38,14 @@ class Annuli:
         # solve annuli
         self.solve()
 
+
+    def _update_hist(self, snap:Dict[str,str])-> None:
+        """Method to update history"""
+        for k,v in snap.items():
+            if k in self.hist.keys():
+                self.hist[k].append(v)
+            else:
+                self.hist[k] = [v,]
 
     def _load_polar_data(self, polar_path:Path|str) -> Dict[str, np.ndarray]:
         """Function to read the polar data"""
@@ -134,7 +144,7 @@ class Annuli:
             a = a,
             aline = aline,
         )
-        self.temp_res = res
+        self._update_hist(res)
         return residual
     
     def solve(self):
