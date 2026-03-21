@@ -193,7 +193,7 @@ if __name__ == "__main__":
     twst_func:Callable = lambda r_R : -50*r_R+35
     B:float=6
     R:float=0.7
-    pitch:float=46
+    pitch:float=20
     r_R_H:float=0.25
     n_elem:int=100
     polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')

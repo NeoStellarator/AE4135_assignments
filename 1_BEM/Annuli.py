@@ -41,7 +41,6 @@ class Annuli:
                           self.polar_data["alpha"].max()])
         self.phi_rng = np.deg2rad(self.beta - a_rng)
 
-        print(np.rad2deg(self.phi_rng))
         # solve annuli
         self.solve()
 
@@ -172,19 +171,21 @@ class Annuli:
     def solve(self):
 
         # Initial bound: 1st quadrant
-        self.phi, res = optimize.brentq(self.calculate_residual, 
-                                        self.phi_rng.min(), 
-                                        self.phi_rng.max(), 
-                                        full_output=True)
-
-        # self.phi, res = optimize.newton(self.calculate_residual, 
-        #                                 np.pi/10,
-        #                                 maxiter=1000,
-        #                                 # phi1, 
+        # self.phi, res = optimize.brentq(self.calculate_residual, 
+        #                                 self.phi_rng.min(), 
+        #                                 self.phi_rng.max(), 
         #                                 full_output=True)
 
+        self.phi, res = optimize.newton(self.calculate_residual, 
+                                        np.mean(self.phi_rng),
+                                        maxiter=1000,
+                                        # phi1, 
+                                        full_output=True)
 
-        print(res)
+        if not res.converged:
+            print("not converged!!")
+
+        # print(res)
         # store results
         self.alpha = self.hist["alpha"][-1]
         self.Cl = self.hist["Cl"][-1]
