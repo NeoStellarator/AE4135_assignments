@@ -74,7 +74,7 @@ class Annuli:
     #     CT = 4*a*(1-a)  
     #     if glauert:
     #         CT1=1.816
-    #         a1=1-np.sqrt(CT1)/2
+    #         a1=1-np.sqrt(CT1)/2   
     #         if a>a1:
     #             CT = CT1-4*(np.sqrt(CT1)-1)*(1-a)
         
