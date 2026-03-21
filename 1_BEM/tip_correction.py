@@ -34,6 +34,20 @@ def calculate_prandtl_correction2(B:float,
     f_root = 2/np.pi*np.arccos(np.exp(d*(r_R-r_R_H)))
     return f_tip*f_root
 
+def calculate_prandtl_correction3(B:float,
+                                 phi:float,
+                                 r_R:float,
+                                 r_R_H:float=0)-> float:
+    """
+    Source: 2.84 - 'exact'correction suugested by Betz and Prandtl, assuming
+    Vn = Uinf(1-a) and Vt = Ome*r*(1+a') [E. Branlard 2011]
+
+    modified in terms of phi
+    """
+    d = -B/2*1/np.abs(np.sin(phi))
+    f_tip  = 2/np.pi*np.arccos(np.exp(d*(1-r_R)))
+    f_root = 2/np.pi*np.arccos(np.exp(d*(r_R-r_R_H)))
+    return f_tip*f_root
 
 
 if __name__ == "__main__":
