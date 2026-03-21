@@ -113,16 +113,30 @@ class Rotor:
 
         plt.tight_layout()
         plt.show()
-    # def calculate_integral(self):
-    #     integral_values = np.array([an.calculate_integral() for an in self.annuli_lst])
-    #     total_thrust = sum(integral_values[:,0])
-    #     total_torque = sum(integral_values[:,1])
-    #     total_power = sum(integral_values[:,2])
-    #     n= self.Omega/(2*np.pi) #rev/s
-    #     total_CT = total_thrust/(self.rho*n**2*(2*self.R)**4)
-    #     total_CQ = total_torque/(self.rho*n**2*(2*self.R)**5)
-    #     total_CP = total_torque/(self.rho*n**3*(2*self.R)**5)
-    #     return total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP
+    def calculate_integral(self, R, Uinf, rho):
+        n = Uinf/(self.J*2*R)
+        Nprime_lst = []
+        Tprime_lst = []
+        Tprime_r_lst = []
+        for an in self.annuli_lst:
+            Omega = n*2*np.pi
+            Uy = an.r_R*R*Omega
+            W2 = Uinf*(1+an.a)**2 + Uy*(1-an.aline)**2
+            q = 0.5*rho*W2
+            Nprime = an.Cx * q * an.c_R*R
+            Tprime = an.Cy * q * an.c_R*R
+            Tprime_r = Tprime * an.r_R * R
+            Nprime_lst.append(Nprime)
+            Tprime_lst.append(Tprime)
+            Tprime_r_lst.append(Tprime_r)
+
+        thrust = sum(Nprime_lst)
+        azimuthal = sum(Tprime_lst)
+        torque = sum(Tprime_r_lst)
+        power = torque*Omega
+        return thrust, azimuthal, torque, power
+
+
     def print_geometry(self):
         for i in range(self.n_elem):
             print(self.r_R_lst[i],self.c_R_lst[i],self.beta_lst[i])
