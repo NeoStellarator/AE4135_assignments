@@ -223,13 +223,14 @@ if __name__ == "__main__":
 
     # K = np.linspace(-1, 1000, 100000)
     # a = [ai.calculate_induction(ki, 1) for ki in K]
-    print(ai.a, ai.aline, ai.alpha, np.rad2deg(ai.phi), ai.beta)
+    print(r_R, ai.a, ai.aline, ai.alpha, np.rad2deg(ai.phi), ai.beta)
 
     fig, ax = plt.subplots()
 
     ax.plot(ai.hist["r"])
     ax.plot(ai.hist["Cl"])
     ax.plot(ai.hist["Cd"])
+    ax.plot(ai.hist["CT"])
 
     # ax.plot(ai.hist["F"])
     # ax.plot(K, a)

@@ -48,9 +48,11 @@ class Rotor:
             
             self.c_R_lst = c_R_func(self.r_R_lst)
             self.beta_lst = pitch + twst_func(self.r_R_lst)
+        elif dist_elem == "cosine":
+            raise NotImplementedError("TODO!")
 
         self.annuli_lst = [Annuli(polar_path=polar_path, 
-                 r_R=r_R_H,
+                 r_R=self.r_R_lst[i],
                  c_R=self.c_R_lst[i],
                  beta=self.beta_lst[i],
                  B=B, 
@@ -196,11 +198,7 @@ if __name__ == "__main__":
     n_elem:int=100
     polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
     polar = 'ARAD8pct_polar.txt'
-    pitch_ref:float=0
     dist_elem:str="uniform"
-    Uinf = 60
-    n=1200
-    Omega = n*2*np.pi/60
     J=1.2
 
     rotor = Rotor(
@@ -210,7 +208,7 @@ if __name__ == "__main__":
         B=B,
         J=J,
         r_R_H=r_R_H,
-        n_elem=100,
+        n_elem=n_elem,
         polar_path=main_dir.joinpath('ARAD8pct_polar.txt'),
         dist_elem='uniform',
         isPropeller=True)
