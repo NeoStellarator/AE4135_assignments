@@ -287,15 +287,30 @@ class Rotor:
 
 if __name__ == "__main__":
     # Propeller
-    c_R_func:Callable = lambda r_R : 0.18-0.03*r_R
-    twst_func:Callable = lambda r_R : -50*r_R+35
+    #Optimized windmiling case 1
+    # c_R_func:Callable = lambda r_R : 0.1755-0.0618*r_R
+    # twst_func:Callable = lambda r_R : -54.66*r_R+28.14
+
+   
+
+
+    #Optimized windmiling case 2
+    # c_R_func:Callable = lambda r_R : 0.1755-0.0618*r_R
+    # twst_func:Callable = lambda r_R : -48.59*r_R+18.76
+
+     #Optimized windmiling case 3
+    c_R_func:Callable = lambda r_R : 0.2819-0.0508*r_R
+    twst_func:Callable = lambda r_R : -38.93*r_R+9.94
+
+    # c_R_func:Callable = lambda r_R : 0.18-0.03*r_R
+    # twst_func:Callable = lambda r_R : -50*r_R+35
     B:float=6
     R:float=0.7
     pitch:float=46
     r_R_H:float=0.25
     n_elem:int=100
-    polar:str|Path=main_dir.joinpath('ARAD6pct_polar.txt')
-    polar = 'ARAD6pct_polar.txt'
+    polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
+    polar = 'ARAD8pct_polar.txt'
     dist_elem:str="uniform"
     J=60/20/1.4
 
@@ -307,13 +322,14 @@ if __name__ == "__main__":
         J=J,
         r_R_H=r_R_H,
         n_elem=n_elem,
-        polar_path=main_dir.joinpath('ARAD6pct_polar.txt'),
+        polar_path=main_dir.joinpath('ARAD8pct_polar.txt'),
         dist_elem='uniform',
         isPropeller=True)
     thrust, azimuthal, torque, power=rotor.calculate_integral(R=0.7,Uinf=60,rho=1)
-    rotor.plot_radial()
-    rotor.export("propeller_radial_data_VAL.csv")
     print(f"Thrust: {thrust:.2f}, azimuthal: {azimuthal:.2f}, torque: {torque:.2f}, power: {power:.2f}")
+    rotor.plot_radial()
+    # rotor.export("propeller_radial_data_VAL2.csv")
+    
     # # WIND TURBINE
     # R:float=50
     # c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
