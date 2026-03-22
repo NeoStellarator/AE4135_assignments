@@ -23,7 +23,6 @@ def alpha_span_dist(save=False, exp_df=None, val_df=None):
     plt.ylabel('Alpha and inflow angle (deg)')
     plt.xlabel('Spanwise location (r/R)')
     plt.title('Alpha and Inflow angle vs Spanwise location')
-    plt.title('Alpha and Inflow angle vs Spanwise location')
     plt.legend(loc='upper right')
     plt.grid()
     plt.show()
