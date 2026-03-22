@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from Annuli import Annuli
@@ -354,10 +355,9 @@ if __name__ == "__main__":
     #     polar_path=polar,
     #     isPropeller=False)
     
-<<<<<<< HEAD
+
     
-    rotor.plot_radial()
-=======
+rotor.plot_radial()
     # rotor.print_geometry()
     # print(rotor.calculate_integral())
 
