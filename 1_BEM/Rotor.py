@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from Annuli import Annuli
@@ -13,18 +12,31 @@ from globals import main_dir
 
 
 class Rotor:
-    def __init__(self,Uinf, Omega, c_R_func,twst_func, B, R, pitch, r_R_H,n_elem,polar_path,H=2000,dist_elem='uniform',isPropeller = False):
-        self.Uinf = Uinf
-        self.Omega = Omega #rev/m
-        self.c_R_func = c_R_func
-        self.twst_func = twst_func
-        self.B = B
-        self.R = R
+    def __init__(
+        self,
+        c_R_func,
+        twst_func,
+        pitch,
+        B,
+        J,
+        r_R_H,
+        polar_path,
+        n_elem=100,
+        dist_elem='uniform',
+        isPropeller=False
+    ):
+        self.c_R_func = c_R_func      
+        self.twst_func = twst_func    
         self.pitch = pitch
-        self.r_R_H = r_R_H
+        self.B = B                    
+        self.J = J                    
+        self.r_R_H = r_R_H            
+
         self.n_elem = n_elem
-        self.polar_path = polar_path
         self.dist_elem = dist_elem
+
+        self.polar_path = polar_path
+
         self.isPropeller = isPropeller
         
         if dist_elem == "uniform":
@@ -45,26 +57,15 @@ class Rotor:
             
             self.c_R_lst = c_R_func(self.r_R_lst)
             self.beta_lst = pitch + twst_func(self.r_R_lst)
-
-        self.T = 288.15 - 0.0065 * H
-        self.rho = 1.225* (self.T/288.15)**(-(9.81/(-0.0065*287)+1))
-        print(self.rho)
-        self.annuli_lst = [
-            
-            Annuli(polar_path=polar_path,
-                   Uinf = Uinf,
-                   Omega= Omega,
-                 r1_R=self.r1_R_lst[i],
-                 r2_R=self.r2_R_lst[i],
-                 r_R_H=self.r_R_H,
-                 R=self.R,
-                 B=self.B,
+        
+        self.annuli_lst = [Annuli(polar_path=polar_path, 
+                 r_R=self.r_R_lst[i],
                  c_R=self.c_R_lst[i],
                  beta=self.beta_lst[i],
-                 rho = self.rho,
-                 isPropeller = self.isPropeller,
-                 a0=1/3,
-                 aline0=0.1) for i in range(n_elem)]
+                 B=B, 
+                 J=J,
+                 r_R_H=r_R_H) for i in range(n_elem)]
+
     def plot_radial(self):
         self.phi_lst   = [an.phi   for an in self.annuli_lst]
         self.alpha_lst = [an.alpha for an in self.annuli_lst]
@@ -72,17 +73,15 @@ class Rotor:
         self.Cd_lst = [an.Cd for an in self.annuli_lst]
         self.Cx_lst = [an.Cx for an in self.annuli_lst]
         self.Cy_lst = [an.Cy for an in self.annuli_lst]
-        self.f_lst  = [an.f  for an in self.annuli_lst]
-        self.CT_lst = [an.Ct for an in self.annuli_lst]
-        self.CQ_lst = [an.Cq for an in self.annuli_lst]
-        self.CP_lst = [an.Cp for an in self.annuli_lst]
+        self.f_lst  = [an.F  for an in self.annuli_lst]
+        self.CT_lst = [an.CT for an in self.annuli_lst]
+        self.CQ_lst = [an.CQ for an in self.annuli_lst]
+        self.CP_lst = [an.CP for an in self.annuli_lst]
         self.a_lst  = [an.a  for an in self.annuli_lst]
         self.aline_lst = [an.aline for an in self.annuli_lst]
-        self.Ux_lst = [an.Ux for an in self.annuli_lst]
-        self.Uy_lst = [an.Uy for an in self.annuli_lst]
 
         fig, axs = plt.subplots(3, 2)
-
+        
         # (1) phi & alpha
         ax = axs[1, 1]
         ax.plot(self.r_R_lst, self.phi_lst, label=r'$\phi$')
@@ -115,28 +114,43 @@ class Rotor:
         ax.legend()
         ax.grid()
 
-        ax = axs[2, 0]
-        ax.plot(self.r_R_lst, self.Ux_lst, label=r'$U_x$')
-        ax.plot(self.r_R_lst, self.Uy_lst, label=r'$U_y$')
-        ax.set_title("Velocities")
-        ax.legend()
-        ax.grid()
+        # ax = axs[2, 0]
+        # ax.plot(self.r_R_lst, self.Ux_lst, label=r'$U_x$')
+        # ax.plot(self.r_R_lst, self.Uy_lst, label=r'$U_y$')
+        # ax.set_title("Velocities")
+        # ax.legend()
+        # ax.grid()
 
         plt.tight_layout()
         plt.show()
-    def calculate_integral(self):
-        integral_values = np.array([an.calculate_integral() for an in self.annuli_lst])
-        total_thrust = sum(integral_values[:,0])
-        total_torque = sum(integral_values[:,1])
-        total_power = sum(integral_values[:,2])
-        n= self.Omega/(2*np.pi) #rev/s
-        total_CT = total_thrust/(self.rho*n**2*(2*self.R)**4)
-        total_CQ = total_torque/(self.rho*n**2*(2*self.R)**5)
-        total_CP = total_torque/(self.rho*n**3*(2*self.R)**5)
-        return total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP
+    def calculate_integral(self, R, Uinf, rho):
+        n = Uinf/(self.J*2*R)
+        Nprime_lst = []
+        Tprime_lst = []
+        Tprime_r_lst = []
+        for an in self.annuli_lst:
+            Omega = n*2*np.pi
+            Uy = an.r_R*R*Omega
+            W2 = Uinf*(1+an.a)**2 + Uy*(1-an.aline)**2
+            q = 0.5*rho*W2
+            Nprime = an.Cx * q * an.c_R*R
+            Tprime = an.Cy * q * an.c_R*R
+            Tprime_r = Tprime * an.r_R * R
+            Nprime_lst.append(Nprime)
+            Tprime_lst.append(Tprime)
+            Tprime_r_lst.append(Tprime_r)
+
+        thrust = sum(Nprime_lst)
+        azimuthal = sum(Tprime_lst)
+        torque = sum(Tprime_r_lst)
+        power = torque*Omega
+        return thrust, azimuthal, torque, power
+
+
     def print_geometry(self):
         for i in range(self.n_elem):
             print(self.r_R_lst[i],self.c_R_lst[i],self.beta_lst[i])
+    
     def export(self,file_path):
         save_df = pd.DataFrame()
         save_df["r_R"] = self.r_R_lst
@@ -153,7 +167,7 @@ class Rotor:
 
         history_a_df = pd.DataFrame()
         history_a_df["r_R"] = self.r_R_lst
-        a_histories = [an.a_hist for an in self.annuli_lst]
+        a_histories = [an.hist["a"] for an in self.annuli_lst]
         
 
         max_len = max(len(h) for h in a_histories)
@@ -167,7 +181,7 @@ class Rotor:
 
         history_aline_df = pd.DataFrame()
         history_aline_df["r_R"] = self.r_R_lst
-        aline_histories = [an.aline_hist for an in self.annuli_lst]
+        aline_histories = [an.hist["aline"] for an in self.annuli_lst]
 
         max_len = max(len(h) for h in aline_histories)
 
@@ -193,14 +207,12 @@ class Rotor:
         """
         import os
         import csv
-        import numpy as np
-        
+        Rad = 0.7
         # Get the results
-        total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP = self.calculate_integral()
-        J = self.Uinf/(self.Omega * 60 * self.R / np.pi)
+        thrust, azimuthal, torque, power = self.calculate_integral(Rad, 60, 1.007)
         
         # Prepare the data row (without timestamp as per your CSV format)
-        new_row = [self.R, self.n_elem, J, total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP]
+        new_row = [Rad, self.n_elem, self.J, thrust, azimuthal, torque, power,]
         
         # Headers to use
         headers = [
@@ -208,11 +220,9 @@ class Rotor:
             'n_elem',
             'J',
             'Total Thrust',
-            'Total Torque',
+            'Total azimuthal',
+            'Torque',
             'Total Power',
-            'CT',
-            'CQ',
-            'CP'
         ]
         
         # If file exists and we're targeting a specific row
@@ -275,11 +285,9 @@ class Rotor:
 
 
 
-
-
 if __name__ == "__main__":
     # Propeller
-    c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
+    c_R_func:Callable = lambda r_R : 0.18-0.03*r_R
     twst_func:Callable = lambda r_R : -50*r_R+35
     B:float=6
     R:float=0.7
@@ -287,45 +295,25 @@ if __name__ == "__main__":
     r_R_H:float=0.25
     n_elem:int=100
     polar:str|Path=main_dir.joinpath('ARAD6pct_polar.txt')
-    polar = '1_BEM/ARAD6pct_polar.txt'
-    pitch_ref:float=0
+    polar = 'ARAD6pct_polar.txt'
     dist_elem:str="uniform"
-    Uinf = 60
-    n=1200/60
-    Omega = n*2*np.pi/60
-    # rotor = Rotor(
-    #     Uinf=Uinf,
-    #     Omega=Omega,
-    #     c_R_func=c_R_func, 
-    #     twst_func=twst_func,
-    #     B=B,
-    #     R=R,
-    #     pitch=pitch,
-    #     r_R_H=r_R_H,
-    #     n_elem=n_elem,
-    #     polar_path=polar,
-    #     isPropeller=True)
-    # rotor.plot_radial()   
-    # rotor.export("propeller_radial_data2.csv")
-    J_lst = np.linspace(1.2,2.7,10)
-    for i,j in enumerate(J_lst):
-        n=Uinf/(j*2*R)
-        Omega = n*2*np.pi/60
-        rotor = Rotor(
-            Uinf=Uinf,
-            Omega=Omega,
-            c_R_func=c_R_func, 
-            twst_func=twst_func,
-            B=B,
-            R=R,
-            pitch=pitch,
-            r_R_H=r_R_H,
-            n_elem=n_elem,
-            polar_path=polar,
-            isPropeller=True)
-        # print(rotor.calculate_integral())
-        # rotor.write_Total_res_for_Input(i+1,'results_val.csv')
+    J=60/20/1.4
 
+    rotor = Rotor(
+        c_R_func=c_R_func,
+        twst_func=twst_func,
+        pitch=pitch,
+        B=B,
+        J=J,
+        r_R_H=r_R_H,
+        n_elem=n_elem,
+        polar_path=main_dir.joinpath('ARAD6pct_polar.txt'),
+        dist_elem='uniform',
+        isPropeller=True)
+    thrust, azimuthal, torque, power=rotor.calculate_integral(R=0.7,Uinf=60,rho=1)
+    rotor.plot_radial()
+    rotor.export("propeller_radial_data_VAL.csv")
+    print(f"Thrust: {thrust:.2f}, azimuthal: {azimuthal:.2f}, torque: {torque:.2f}, power: {power:.2f}")
     # # WIND TURBINE
     # R:float=50
     # c_R_func:Callable = lambda r_R : (3*(1-r_R)+1)/R
@@ -355,13 +343,7 @@ if __name__ == "__main__":
     #     polar_path=polar,
     #     isPropeller=False)
     
-
-    
-rotor.plot_radial()
     # rotor.print_geometry()
     # print(rotor.calculate_integral())
-
     
-
-    
-    
+    # rotor.export("propeller_radial_data.csv")

@@ -1,9 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 def alpha_span_dist(save=False, exp_df=None, val_df=None):
     plt.plot(exp_df['r_R'], exp_df['alpha'], '-', label='Angle of attack (Our model)', color='green', linewidth=2)
-    plt.plot(exp_df['r_R'], exp_df['inflow'], '--', label='Inflow angle (Our model)', color='blue', linewidth=2)
+    plt.plot(exp_df['r_R'], np.rad2deg(exp_df['inflow']), '--', label='Inflow angle (Our model)', color='blue', linewidth=2)
     
     if val_df is not None:
         plt.plot(val_df['r_R'], val_df['alpha'], ':', label='Angle of attack (JavaProp)', color='green', marker='o', markersize=4)
