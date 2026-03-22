@@ -108,7 +108,7 @@ class Annuli:
             # a = 1/2*(1-np.sqrt(CT+1))
         return a
     
-    def calculate_residual(self, phi):
+    def calculate_residual(self, phi, update_hist:bool=True) -> float:
             
         # compute angles
         alpha_deg = self.beta - np.rad2deg(phi)
@@ -163,7 +163,9 @@ class Annuli:
             aline = aline,
             r = residual,
         )
-        self._update_hist(res)
+
+        if update_hist:
+            self._update_hist(res)
 
         return residual
     
@@ -172,10 +174,10 @@ class Annuli:
 
         phi_grid = np.linspace(self.phi_rng[0], self.phi_rng[1], nint + 1)
         phi_prev = phi_grid[0]
-        r_prev = self.calculate_residual(phi_prev)
+        r_prev = self.calculate_residual(phi_prev, update_hist=False)
 
         for phi in phi_grid[1:]:
-            r_curr = self.calculate_residual(phi)
+            r_curr = self.calculate_residual(phi, update_hist=False)
 
             if not np.isfinite(r_prev) or not np.isfinite(r_curr):
                 r_prev = r_curr

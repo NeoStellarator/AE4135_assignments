@@ -63,7 +63,14 @@ class Rotor:
             self.c_R = c_R_func(self.r_R)
             self.beta = pitch + twst_func(self.r_R)
         elif dist_elem == "cosine":
-            raise NotImplementedError("TODO!")
+            rr = (1 - np.cos(np.linspace(0, np.pi, n_elem+1)))/2 * (1-r_R_H) + r_R_H
+            self.r1_R_lst = rr[:-1]
+            self.r2_R_lst = rr[1:]
+            
+            self.r_R = (rr[1:] + rr[:-1])/2
+            
+            self.c_R = c_R_func(self.r_R)
+            self.beta = pitch + twst_func(self.r_R)
 
 
         # Evaluation of annuli
@@ -198,7 +205,7 @@ class Rotor:
         hist_df = pd.DataFrame()
         hist_df["r_R"] = self.r_R
 
-        v_histories = [getattr(an, vname) for an in self.annuli_lst]
+        v_histories = [an.hist[vname] for an in self.annuli_lst]
     
         max_len = max(len(h) for h in v_histories)
         padded = [h + [np.nan] * (max_len - len(h)) for h in v_histories]
@@ -210,16 +217,59 @@ class Rotor:
 
         hist_df.to_csv(file_path, index=False)
 
-
-
+    def write_Total_res_for_Input(self, target_row, filename='results.csv'):
+        """
+        Writes results to a specific row in the CSV file.
+        target_row: 1-indexed row number (1 = headers, 2 = first data row)
+        """
+        import os
+        
+        # Create new row as DataFrame
+        new_row = pd.DataFrame([{
+            'R': self.R,
+            'n_elem': self.n_elem,
+            'J': self.J,
+            'Total Thrust': self.T,
+            'Total azimuthal': self.A,
+            'Torque': self.Q,
+            'Total Power': self.P
+        }])
+        
+        if os.path.isfile(filename):
+            # Read existing data
+            existing = pd.read_csv(filename)
+            target_idx = target_row - 2  # Convert to 0-indexed (headers at row 0)
+            
+            # Ensure we have enough rows
+            while len(existing) <= target_idx:
+                existing = pd.concat([existing, pd.DataFrame([{col: np.nan for col in existing.columns}])], ignore_index=True)
+            
+            # Update or append
+            if target_idx < len(existing):
+                existing.iloc[target_idx] = new_row.iloc[0].values
+            else:
+                existing = pd.concat([existing, new_row], ignore_index=True)
+        else:
+            existing = new_row
+        
+        existing.to_csv(filename, index=False)
 
 if __name__ == "__main__":
     # Propeller
+    #Optimized windmiling case 1
+    #     === Final optimized design ===
+    # Twist: -47.35·(r/R) + 67.03°
+    # Chord: c/R = 0.2029 + -0.0747·(r/R)
+    # c_R_func:Callable = lambda r_R : 0.2029-0.0747*r_R
+    # twst_func:Callable = lambda r_R : -47.35*r_R+21.03
+
+    c_R_func:Callable = lambda r_R : 0.18-0.06*r_R
+    twst_func:Callable = lambda r_R : -50*r_R+35
 
     rotor = Rotor(
         # Geometry definition
-        c_R_func  = lambda r_R : 0.18-0.06*r_R,
-        twst_func = lambda r_R : -50*r_R+35,
+        c_R_func  = c_R_func,
+        twst_func = twst_func,
         pitch = 45,
         B     = 6,
         R     = 0.7,
@@ -237,5 +287,7 @@ if __name__ == "__main__":
 
     # rotor.print_geometry()
     # print(rotor.calculate_integral())
+    # rotor.export_dist(data_dir.joinpath('propeller_radial_data.csv'))
+    rotor.export_hist(data_dir.joinpath('propeller_CT_history.csv'), vname='CT')
     rotor.plot_check()
     # rotor.export("propeller_radial_data.csv")
