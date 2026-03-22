@@ -7,11 +7,11 @@ def eff_harvesting(save=False):
     df = pd.read_csv('Plots/results.csv')
     
     Pc = df["Total Power"] / (rho * U0**3 * (0.7*2)**2)
-    eta_harv = -Pc * 8/np.pi
-    # eta_prop = (df["J"] * df["CT"]/df["CP"])
+    # eta_harv = -Pc * 8/np.pi
+    eta_prop = (df["J"] * df["CT"]/df["CP"])
 
-    plt.plot( df['J'],eta_harv, label='harvesting efficiency',color = 'red')
-    # plt.plot( df['J'],eta_prop, '--', label='propeller efficiency',color = 'blue')
+    # plt.plot( df['J'],eta_harv, label='harvesting efficiency',color = 'red')
+    plt.plot( df['J'],eta_prop, '--', label='propeller efficiency',color = 'blue')
     plt.ylabel('Efficiency')
     plt.xlabel('Advance ratio J')
     plt.title(' xxx')

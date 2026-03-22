@@ -35,6 +35,16 @@ class Rotor:
             
             self.c_R_lst = c_R_func(self.r_R_lst)
             self.beta_lst = pitch + twst_func(self.r_R_lst)
+        elif dist_elem == "cosine":
+            rr = (1 - np.cos(np.linspace(0, np.pi, n_elem+1)))/2 * (1-r_R_H) + r_R_H
+            self.r1_R_lst = rr[:-1]
+            self.r2_R_lst = rr[1:]
+            
+            self.r_R_lst = (rr[1:] + rr[:-1])/2
+            
+            self.c_R_lst = c_R_func(self.r_R_lst)
+            self.beta_lst = pitch + twst_func(self.r_R_lst)
+
         self.T = 288.15 - 0.0065 * H
         self.rho = 1.225* (self.T/288.15)**(-(9.81/(-0.0065*287)+1))
         print(self.rho)
@@ -53,7 +63,7 @@ class Rotor:
                  rho = self.rho,
                  isPropeller = self.isPropeller,
                  a0=1/3,
-                 aline0=0) for i in range(n_elem)]
+                 aline0=0.1) for i in range(n_elem)]
     def plot_radial(self):
         self.phi_lst   = [an.phi   for an in self.annuli_lst]
         self.alpha_lst = [an.alpha for an in self.annuli_lst]
@@ -168,7 +178,7 @@ class Rotor:
 
         history_aline_df.to_csv("hist_aline_"+file_path,index=False)
 
-    def write_Total_res_for_J(self, target_row, filename='results.csv'):
+    def write_Total_res_for_Input(self, target_row, filename='results.csv'):
         """
         Writes results to a specific row in the CSV file (1-indexed, including headers).
         Useful for overwriting or updating specific rows.
@@ -182,24 +192,26 @@ class Rotor:
         """
         import os
         import csv
+        import numpy as np
         
         # Get the results
         total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP = self.calculate_integral()
         J = self.Uinf/(self.Omega * 60 * self.R / np.pi)
         
         # Prepare the data row (without timestamp as per your CSV format)
-        new_row = [self.R, J, total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP]
+        new_row = [self.R, self.n_elem, J, total_thrust, total_torque, total_power, total_CT, total_CQ, total_CP]
         
         # Headers to use
         headers = [
             'R',
-            'J (Advance Ratio)',
+            'n_elem',
+            'J',
             'Total Thrust',
             'Total Torque',
             'Total Power',
-            'CT (Thrust Coefficient)',
-            'CQ (Torque Coefficient)',
-            'CP (Power Coefficient)'
+            'CT',
+            'CQ',
+            'CP'
         ]
         
         # If file exists and we're targeting a specific row
@@ -210,7 +222,6 @@ class Rotor:
                 rows = list(reader)
             
             # Check if headers exist (first row should contain text, not numbers)
-            # This is a simple check - you might want to make it more robust
             if len(rows) == 0 or (len(rows[0]) > 0 and isinstance(rows[0][0], str) and 'R' in rows[0][0]):
                 # Headers exist, target_row should be >= 2 for data rows
                 if target_row < 2:
@@ -240,23 +251,27 @@ class Rotor:
             with open(filename, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 
+                # Validate target_row
+                if target_row < 1:
+                    print(f"Warning: target_row={target_row} is invalid. Setting to row 1.")
+                    target_row = 1
+                
                 # Write headers on row 1
                 writer.writerow(headers)
                 
-                # Fill empty rows until we reach target_row
-                # If target_row is 1, we'd be overwriting headers, so adjust
+                # If target_row is 1, we just wrote headers there, so we need to write data at row 2
                 if target_row == 1:
                     print(f"Warning: target_row=1 would overwrite headers. Setting to row 2.")
                     target_row = 2
                 
-                # Fill rows from 2 to target_row-1 with empty rows
+                # Fill empty rows from row 2 to target_row-1 with empty rows
+                # This loop will only run if target_row > 2
                 for i in range(2, target_row):
                     writer.writerow([])
                 
-                # Write the data row
+                # Write the data row at the specified target_row
                 writer.writerow(new_row)
-        
-        # print(f"Results written to row {target_row} in {filename}")
+
 
 
 
@@ -270,15 +285,28 @@ if __name__ == "__main__":
     pitch:float=46
     r_R_H:float=0.25
     n_elem:int=100
-    polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
-    polar = '1_BEM/ARAD8pct_polar.txt'
+    polar:str|Path=main_dir.joinpath('ARAD6pct_polar.txt')
+    polar = '1_BEM/ARAD6pct_polar.txt'
     pitch_ref:float=0
     dist_elem:str="uniform"
     Uinf = 60
-    J = 2
-    
-
-    J_lst = np.linspace(1,4,10)
+    n=1200/60
+    Omega = n*2*np.pi/60
+    # rotor = Rotor(
+    #     Uinf=Uinf,
+    #     Omega=Omega,
+    #     c_R_func=c_R_func, 
+    #     twst_func=twst_func,
+    #     B=B,
+    #     R=R,
+    #     pitch=pitch,
+    #     r_R_H=r_R_H,
+    #     n_elem=n_elem,
+    #     polar_path=polar,
+    #     isPropeller=True)
+    # rotor.plot_radial()   
+    # rotor.export("propeller_radial_data2.csv")
+    J_lst = np.linspace(1.2,2.7,10)
     for i,j in enumerate(J_lst):
         n=Uinf/(j*2*R)
         Omega = n*2*np.pi/60
@@ -294,8 +322,8 @@ if __name__ == "__main__":
             n_elem=n_elem,
             polar_path=polar,
             isPropeller=True)
-        print(rotor.calculate_integral())
-        rotor.write_Total_res_for_J(i+1,'results.csv')
+        # print(rotor.calculate_integral())
+        # rotor.write_Total_res_for_Input(i+1,'results_val.csv')
 
     # # WIND TURBINE
     # R:float=50
@@ -332,8 +360,7 @@ if __name__ == "__main__":
 =======
     # rotor.print_geometry()
     # print(rotor.calculate_integral())
-    # rotor.plot_radial()
-    # rotor.export("propeller_radial_data.csv")
+
     
 
     
