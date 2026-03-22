@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def forces_span_dist(save=False, exp_df=None, val_df=None):
+def forces_vs_J(save=False, exp_df=None, val_df=None):
     """
     Plot axial and tangential force distributions along the span.
     
@@ -13,17 +13,17 @@ def forces_span_dist(save=False, exp_df=None, val_df=None):
     
     # Plot experimental/reference data (solid lines)
     if exp_df is not None:
-        plt.plot(exp_df['r_R'], exp_df['Cx'], '-', label='Axial force (Our model)', color='blue', linewidth=2)
-        plt.plot(exp_df['r_R'], exp_df['Cy'], '--', label='Tangential force (Our model)', color='red', linewidth=2)
+        plt.plot(exp_df['J'], exp_df['Total Thrust'], '-', label='Total Thrust (Our model)', color='blue', linewidth=2)
+        plt.plot(exp_df['J'], exp_df['Total Torque'], '--', label='Total Torque (Our model)', color='red', linewidth=2)
     
     # Plot validation data (dotted lines)
     if val_df is not None:
-        plt.plot(val_df['r_R'], val_df['Cx'], ':', label='Axial force (JavaProp)', color='blue', linewidth=2, marker='o', markersize=4)
-        plt.plot(val_df['r_R'], val_df['Cy'], ':', label='Tangential force (JavaProp)', color='red', linewidth=2, marker='s', markersize=4)
+        plt.plot(val_df['J'], val_df['Thrust']*1000, ':', label='Total Thrust (JavaProp)', color='blue', linewidth=2, marker='o', markersize=4)
+        plt.plot(val_df['J'], val_df['Torque']*1000, ':', label='Total Torque (JavaProp)', color='red', linewidth=2, marker='s', markersize=4)
     
-    plt.ylabel('Force coefficients')
-    plt.xlabel('Spanwise location (r/R)')
-    plt.title('Axial and azimuthal loading vs Spanwise location')
+    plt.ylabel('Forces (N and N-m)')
+    plt.xlabel('Advance ratio (J)')
+    plt.title('Total Thrust and Torque vs Advance ratio')
     plt.legend(loc='upper right')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
