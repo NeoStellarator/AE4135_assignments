@@ -36,10 +36,9 @@ class Annuli:
         # read & store polar data
         self.polar_data = self._load_polar_data(polar_path)
 
-        # compute bounds based on available data
-        a_rng = np.array([self.polar_data["alpha"].min(), 
-                          self.polar_data["alpha"].max()])
-        self.phi_rng = np.deg2rad(self.beta - a_rng)
+        # search only the 1st quadrant (Vx > 0, Vy > 0)
+        self.phi_eps = 1e-6
+        self.phi_rng = np.array([self.phi_eps, np.pi/2 - self.phi_eps])
 
         # solve annuli
         self.solve()
@@ -123,12 +122,12 @@ class Annuli:
         Cy = Cl*np.sin(phi)+Cd*np.cos(phi)
         
         # calculate the tip correction
-        # F = tip_correction.ning_correction(self.r_R,self.r_R_H,self.B, phi)
-        F = tip_correction.calculate_prandtl_correction3(
-            B=self.B,
-            phi=phi,
-            r_R=self.r_R,
-            r_R_H=self.r_R_H)
+        F = tip_correction.ning_correction(self.r_R,self.r_R_H,self.B, phi)
+        # F = tip_correction.calculate_prandtl_correction3(
+        #     B=self.B,
+        #     phi=phi,
+        #     r_R=self.r_R,
+        #     r_R_H=self.r_R_H)
         
         # blade element momentum
         #   tangential
@@ -137,7 +136,7 @@ class Annuli:
         
         #   axial
         k = Cx*self.sig/(4*F*(np.sin(phi))**2)
-        a = self.calculate_induction(k, F) 
+        a = self.calculate_induction(k, F)
 
         # compute other coefficients
         Vy_Vx = self.TSR*self.r_R
@@ -168,25 +167,52 @@ class Annuli:
 
         return residual
     
+    def _find_bracket(self, nint:int=200) -> Tuple[float, float]:
+        """Find a sign-changing bracket in the 1st quadrant."""
+
+        phi_grid = np.linspace(self.phi_rng[0], self.phi_rng[1], nint + 1)
+        phi_prev = phi_grid[0]
+        r_prev = self.calculate_residual(phi_prev)
+
+        for phi in phi_grid[1:]:
+            r_curr = self.calculate_residual(phi)
+
+            if not np.isfinite(r_prev) or not np.isfinite(r_curr):
+                r_prev = r_curr
+                continue
+
+            if r_prev == 0.0:
+                return phi_prev, phi_prev
+
+            if r_prev * r_curr < 0.0:
+                return phi_prev, phi
+
+            phi_prev = phi
+            r_prev = r_curr
+
+        if np.isfinite(r_prev) and r_prev == 0.0:
+            return phi_grid[-1], phi_grid[-1]
+
+        raise ValueError("No sign change found for residual in the 1st quadrant")
+
     def solve(self):
 
-        # Initial bound: 1st quadrant
-        # self.phi, res = optimize.brentq(self.calculate_residual, 
-        #                                 self.phi_rng.min(), 
-        #                                 self.phi_rng.max(), 
-        #                                 full_output=True)
+        # find a sign-changing bracket in the 1st quadrant, then solve with Brent
+        phi_lo, phi_hi = self._find_bracket()
 
-        self.phi, res = optimize.newton(self.calculate_residual, 
-                                        np.mean(self.phi_rng),
-                                        maxiter=1000,
-                                        # phi1, 
-                                        full_output=True)
+        if np.isclose(phi_lo, phi_hi):
+            self.phi = phi_lo
+        else:
+            self.phi, res = optimize.brentq(self.calculate_residual, 
+                                            phi_lo, 
+                                            phi_hi, 
+                                            full_output=True)
 
-        if not res.converged:
-            print("not converged!!")
+            if not res.converged:
+                print("not converged!!")
 
-        # print(res)
-        # store results
+        # recompute and store the final converged state
+        self.calculate_residual(self.phi)
         self.alpha = self.hist["alpha"][-1]
         self.Cl = self.hist["Cl"][-1]
         self.Cd = self.hist["Cd"][-1]
