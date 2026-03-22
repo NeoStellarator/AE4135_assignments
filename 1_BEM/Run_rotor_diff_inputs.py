@@ -13,8 +13,8 @@ def run_rotor_diff_inputs(option):
     pitch:float=46
     r_R_H:float=0.25
     n_elem:int=100
-    polar:str|Path=main_dir.joinpath('ARAD8pct_polar.txt')
-    polar = 'ARAD8pct_polar.txt'
+    polar:str|Path=main_dir.joinpath('ARAD6pct_polar.txt')
+    polar = 'ARAD6pct_polar.txt'
     dist_elem:str="uniform"
     J=60/20/1.4
 
@@ -30,11 +30,11 @@ def run_rotor_diff_inputs(option):
         J=j,
         r_R_H=r_R_H,
         n_elem=n_elem,
-        polar_path=main_dir.joinpath('ARAD8pct_polar.txt'),
+        polar_path=main_dir.joinpath('ARAD6pct_polarOWN.txt'),
         dist_elem='uniform',
         isPropeller=True)
 
-            rotor.write_Total_res_for_Input(i+2,'results_Varying_J_Val.csv')
+            rotor.write_Total_res_for_Input(i+2,'results_Varying_J_Val2.csv')
     elif option == 'n':
         n_lst = np.linspace(5,300,20,dtype=int)
         print(n_lst)

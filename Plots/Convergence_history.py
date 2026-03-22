@@ -14,9 +14,9 @@ def Convergence_history(filename=None, save=False):
     for i in range (1,len(df.columns)):
         def integrand(x,fx):
             return fx*x
-        Ct = 4*df[df.columns[i]]*(1-df[df.columns[i]])
+        Ct = df[df.columns[i]]
 
-        fx = Ct*1/2*rho*Uinf**2*np.pi*(0.7*df[df.columns[0]])**2
+        fx = Ct*1/2*rho*Uinf**2*np.pi*0.7**2*df[df.columns[0]]
         total_thrust = np.trapezoid(fx, df[df.columns[0]])
         iter.append(i)
         total_thrust_lst.append(total_thrust)

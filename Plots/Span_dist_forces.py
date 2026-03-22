@@ -18,8 +18,8 @@ def forces_span_dist(save=False, exp_df=None, val_df=None):
     
     # Plot validation data (dotted lines)
     if val_df is not None:
-        plt.plot(val_df['r_R'], val_df['Cx'], ':', label='Axial force (JavaProp)', color='blue', linewidth=2, marker='o', markersize=4)
-        plt.plot(val_df['r_R'], val_df['Cy'], ':', label='Tangential force (JavaProp)', color='red', linewidth=2, marker='s', markersize=4)
+        plt.plot(val_df['r_R'], val_df['Cy'], ':', label='Axial force (JavaProp)', color='blue', linewidth=2, marker='o', markersize=4)
+        plt.plot(val_df['r_R'], val_df['Cx'], ':', label='Tangential force (JavaProp)', color='red', linewidth=2, marker='s', markersize=4)
     
     plt.ylabel('Force coefficients')
     plt.xlabel('Spanwise location (r/R)')
