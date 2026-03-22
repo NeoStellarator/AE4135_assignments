@@ -14,7 +14,7 @@ def forces_vs_J(save=False, exp_df=None, val_df=None):
     # Plot experimental/reference data (solid lines)
     if exp_df is not None:
         plt.plot(exp_df['J'], exp_df['Total Thrust'], '-', label='Total Thrust (Our model)', color='blue', linewidth=2)
-        plt.plot(exp_df['J'], exp_df['Total Torque'], '--', label='Total Torque (Our model)', color='red', linewidth=2)
+        plt.plot(exp_df['J'], exp_df['Torque'], '--', label='Total Torque (Our model)', color='red', linewidth=2)
     
     # Plot validation data (dotted lines)
     if val_df is not None:
