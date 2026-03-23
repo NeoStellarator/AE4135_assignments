@@ -122,12 +122,8 @@ class Annuli:
         Cy = Cl*np.sin(phi)+Cd*np.cos(phi)
         
         # calculate the tip correction
-        F = tip_correction.ning_correction(self.r_R,self.r_R_H,self.B, phi)
-        # F = tip_correction.calculate_prandtl_correction3(
-        #     B=self.B,
-        #     phi=phi,
-        #     r_R=self.r_R,
-        #     r_R_H=self.r_R_H)
+        F = tip_correction.ning_correction(self.B, phi, self.r_R, self.r_R_H)
+        # F = tip_correction.prandtl_correction(self.B, phi, self.r_R, self.r_R_H)
         
         # blade element momentum
         #   tangential
@@ -142,7 +138,6 @@ class Annuli:
         Vy_Vx = self.TSR*self.r_R
         CT = Cx*self.sig*((1+a)/np.sin(phi))**2 # Ning (27)
         CQ = Cy*self.sig*((1-aline)/np.cos(phi))*((1+a)/np.sin(phi))*Vy_Vx # Ning (Eq 28) 
-        CP = 2*np.pi*CQ
         Ca = Cy #is this azimuthal?
 
         residual = np.sin(phi)/(1+a) - 1/Vy_Vx*np.cos(phi)/(1-aline) # Ning (Eq 70)
@@ -156,7 +151,6 @@ class Annuli:
             Cy = Cy,
             F  = F,
             CT = CT,
-            CP = CP,
             Ca = Ca,
             CQ = CQ,
             a = a,
@@ -222,7 +216,6 @@ class Annuli:
         self.Cy = self.hist["Cy"][-1]
         self.F  = self.hist["F"][-1]
         self.CT = self.hist["CT"][-1]
-        self.CP = self.hist["CP"][-1]
         self.Ca = self.hist["Ca"][-1]
         self.CQ = self.hist["CQ"][-1]
         self.a = self.hist["a"][-1]

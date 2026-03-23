@@ -1,54 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-def calculate_prandtl_correction(B:float,
-                                 TSR:float,
-                                 a:float,
-                                 r_R:float,
-                                 a_:float=0,
-                                 r_R_H:float=0)->float:
-    """Method to compute prandtl hub/tip-loss correction"""
-
-    d = (2*np.pi/B)*(1-a)/np.sqrt(TSR**2+(1-a)**2)
+def ning_correction(B:float,
+                    phi:float,
+                    r_R:float,
+                    r_R_H:float=0)-> float:
+    """Glauert tip-correction based on inflow angle, applied on forces.
     
-    f_tip  = 2/np.pi*np.arccos(np.exp((-np.pi*(1-r_R)/d)))
-    f_root = 2/np.pi*np.arccos(np.exp((-np.pi*(r_R)/d))) #reversed
-    
-    return f_tip*f_root
-
-
-def calculate_prandtl_correction2(B:float,
-                                 TSR:float,
-                                 a:float,
-                                 a_line:float,
-                                 r_R:float,
-                                 r_R_H:float=0)-> float:
+    Source: Ning 
     """
-    Source: 2.84 - 'exact'correction suugested by Betz and Prandtl, assuming
-    Vn = Uinf(1-a) and Vt = Ome*r*(1+a') [E. Branlard 2011]
-
-    """
-    d = -B/2*np.sqrt(1+TSR**2*((1+a_line)/(1-a))**2)
-    f_tip  = 2/np.pi*np.arccos(np.exp(d*(1-r_R)))
-    f_root = 2/np.pi*np.arccos(np.exp(d*(r_R-r_R_H)))
-    return f_tip*f_root
-def ning_correction(r_R, r_R_hub, B, phi):
     R_r = 1/r_R
     f_tip = B/2 * (R_r-1)/abs(np.sin(phi))
     F_tip = 2/np.pi * np.arccos(np.exp(-f_tip))
 
-    f_hub = B/2 * (r_R/r_R_hub-1)/abs(np.sin(phi))
+    f_hub = B/2 * (r_R/r_R_H-1)/abs(np.sin(phi))
     F_hub = 2/np.pi * np.arccos(np.exp(-f_hub))
-    F_hub = max(F_hub,1E-6)
-    F_tip = max(F_tip,1E-6)
-    return F_tip*F_hub
+    
+    return max(F_tip*F_hub, 1e-6)
     
 
-def calculate_prandtl_correction3(B:float,
-                                 phi:float,
-                                 r_R:float,
-                                 r_R_H:float=0)-> float:
+def prandtl_correction(B:float,
+                       phi:float,
+                       r_R:float,
+                       r_R_H:float=0)-> float:
     """
     Source: 2.84 - 'exact'correction suugested by Betz and Prandtl, assuming
     Vn = Uinf(1-a) and Vt = Ome*r*(1+a') [E. Branlard 2011]
@@ -63,18 +37,16 @@ def calculate_prandtl_correction3(B:float,
 
 if __name__ == "__main__":
     B = 40
-    TSR = 1.4
-    a = 0.001
-    a_line = 0.0001
+    phi = np.deg2rad(40)
 
     r_R = np.linspace(0,1,100)
-    f1 = calculate_prandtl_correction(B, TSR, a, r_R)
-    f2 = calculate_prandtl_correction2(B, TSR, a, a_line, r_R)
+    f1 = [ning_correction(B, phi, r_R_i, 0.25) for r_R_i in r_R]
+    f2 = [prandtl_correction(B, phi, r_R_i, 0.25) for r_R_i in r_R]
 
     fig, ax = plt.subplots()
 
-    ax.plot(r_R, f1, label='og')
-    ax.plot(r_R, f2, label='v2')
+    ax.plot(r_R, f1, label='ning')
+    ax.plot(r_R, f2, label='prandtl')
 
     ax.legend()
 

@@ -1,3 +1,4 @@
+import os
 from typing import Callable, List, Literal
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from Annuli import Annuli
 
-from globals import data_dir
+from globals import data_dir, res_dir
 
 
 
@@ -84,7 +85,7 @@ class Rotor:
                  is_prop=self.isPropeller) for i in range(n_elem)]
         
 
-        self.phi   = np.array([an.phi   for an in self.annuli_lst])
+        self.phi   = np.array([(an.phi)*180/np.pi for an in self.annuli_lst])
         self.alpha = np.array([an.alpha for an in self.annuli_lst])
         self.Cl    = np.array([an.Cl for an in self.annuli_lst])
         self.Cd    = np.array([an.Cd for an in self.annuli_lst])
@@ -93,7 +94,6 @@ class Rotor:
         self.f     = np.array([an.F  for an in self.annuli_lst])
         self.Ct    = np.array([an.CT for an in self.annuli_lst])
         self.Cq    = np.array([an.CQ for an in self.annuli_lst])
-        self.Cp    = np.array([an.CP for an in self.annuli_lst])
         self.a     = np.array([an.a  for an in self.annuli_lst])
         self.aline = np.array([an.aline for an in self.annuli_lst])
 
@@ -185,14 +185,15 @@ class Rotor:
             plt.show()
 
     
-    def export_dist(self, file_path:Path):
+    def export_dist(self, file_path:str|Path) -> None:
+        """Function to export the distribution of properties along the span"""
         # table with distribution
         save_df = pd.DataFrame()
         save_df["r_R"]     = self.r_R
         save_df["alpha"]   = self.alpha
-        save_df["inflow"]  = self.phi
+        save_df["phi"]     = self.phi
         save_df["a"]       = self.a
-        save_df["a_prime"] = self.aline
+        save_df["aline"]   = self.aline
         save_df["Ct"]      = self.CT
         save_df["Cx"]      = self.Cx
         save_df["Cy"]      = self.Cy
@@ -200,8 +201,9 @@ class Rotor:
         save_df["Cp"]      = self.CP
         save_df.to_csv(file_path, index=False)
 
-    def export_hist(self, file_path:Path, vname:str='CT'):
-        # table with history
+    def export_hist(self, file_path:str|Path, vname:str='CT') -> None:
+        """Function to export the iteration history of a specified variable,
+        by default the CT"""
         hist_df = pd.DataFrame()
         hist_df["r_R"] = self.r_R
 
@@ -217,27 +219,26 @@ class Rotor:
 
         hist_df.to_csv(file_path, index=False)
 
-    def write_Total_res_for_Input(self, target_row, filename='results.csv'):
+    def export_total(self, target_row:int, file_path:str|Path):
         """
-        Writes results to a specific row in the CSV file.
+        Writes total results to a specific row in the CSV file.
         target_row: 1-indexed row number (1 = headers, 2 = first data row)
         """
-        import os
         
         # Create new row as DataFrame
         new_row = pd.DataFrame([{
             'R': self.R,
             'n_elem': self.n_elem,
             'J': self.J,
-            'Total Thrust': self.T,
-            'Total azimuthal': self.A,
-            'Torque': self.Q,
-            'Total Power': self.P
+            'T': self.T,
+            'A': self.A,
+            'Q': self.Q,
+            'P': self.P
         }])
         
-        if os.path.isfile(filename):
+        if os.path.isfile(file_path):
             # Read existing data
-            existing = pd.read_csv(filename)
+            existing = pd.read_csv(file_path)
             target_idx = target_row - 2  # Convert to 0-indexed (headers at row 0)
             
             # Ensure we have enough rows
@@ -252,7 +253,7 @@ class Rotor:
         else:
             existing = new_row
         
-        existing.to_csv(filename, index=False)
+        existing.to_csv(file_path, index=False)
 
 if __name__ == "__main__":
     # Propeller
@@ -284,10 +285,10 @@ if __name__ == "__main__":
         dist_elem = 'uniform',
         isPropeller = True)
 
+    rotor.export_hist(res_dir.joinpath('propeller_CT_history.csv'), vname='CT')
 
     # rotor.print_geometry()
     # print(rotor.calculate_integral())
     # rotor.export_dist(data_dir.joinpath('propeller_radial_data.csv'))
-    rotor.export_hist(data_dir.joinpath('propeller_CT_history.csv'), vname='CT')
     rotor.plot_check()
     # rotor.export("propeller_radial_data.csv")
