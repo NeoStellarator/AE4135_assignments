@@ -15,16 +15,19 @@ label_dict = {
     'phi' : r"$\phi$ [deg]",
     'Cx' : r'$C_n$ [-]',
     'Cy' : r'$C_t$ [-]',
-    'T' : r"$T$ [N]",
+    'T' : r"$A$ (azimuthal) [N]",
+    'N' : r"$T$ [N]",
     'Q' : r"$Q$ [Nm]",
     'J' : r"$J$ [-]",  
-    'Ct' : r"$C_T$ [-]"
+    'Ct' : r"$C_T$ [-]",
+    'QC' : r"$C_Q$ [-]",
+    'TC' : r"$C_T$ [-]"
 
 }
 
 
 def forces(plot_vs: Literal['J', 'n_elem'],
-           plot_ag: Literal['T', 'Q'],
+           plot_ag: Literal['T', 'Q', 'QC', 'TC'],
            data_df:pd.DataFrame,
            ax:Axes=None,
            verif:bool=False,
@@ -55,7 +58,7 @@ def forces(plot_vs: Literal['J', 'n_elem'],
     return ax
 
 
-def distribution(plot_vs: Literal['a', 'aline', 'alpha', 'phi', 'Cx', 'Cy','Ct'],
+def distribution(plot_vs: Literal['a', 'aline', 'alpha', 'phi', 'Cx', 'Cy','Ct','T','N'],
                  data_df:pd.DataFrame,
                  ax:Axes=None,
                  **kwargs) -> Axes:
