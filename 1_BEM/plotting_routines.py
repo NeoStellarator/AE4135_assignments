@@ -17,7 +17,8 @@ label_dict = {
     'Cy' : r'$C_t$ [-]',
     'T' : r"$T$ [N]",
     'Q' : r"$Q$ [Nm]",
-    'J' : r"$J [-]",  
+    'J' : r"$J$ [-]",  
+    'Ct' : r"$C_T$ [-]"
 
 }
 
@@ -54,7 +55,7 @@ def forces(plot_vs: Literal['J', 'n_elem'],
     return ax
 
 
-def distribution(plot_vs: Literal['a', 'aline', 'alpha', 'phi', 'Cx', 'Cy'],
+def distribution(plot_vs: Literal['a', 'aline', 'alpha', 'phi', 'Cx', 'Cy','Ct'],
                  data_df:pd.DataFrame,
                  ax:Axes=None,
                  **kwargs) -> Axes:
@@ -141,12 +142,14 @@ def barchart_forces_vs_dist(save=False, csv_path=None):
     
     plt.show()
 
-def convergence_history(filename=None, save=False):
+def convergence_history(data_df:pd.DataFrame,
+           ax:Axes=None,
+           mark:bool = True,
+           dist:str=None):
     
     iter = []
     total_thrust_lst = []
-    df = pd.read_csv(filename) if filename else None
-    df = df.ffill(axis=1)
+    df = data_df.ffill(axis=1)
     rho = 1.007
     Uinf = 60
     B = 6 # Number of blades
@@ -161,18 +164,15 @@ def convergence_history(filename=None, save=False):
         total_thrust_lst.append(total_thrust)
 
     print(total_thrust_lst[-1])
-    plt.figure(figsize=(5,4))
-    plt.plot(iter, total_thrust_lst, marker='o')
-    plt.xlabel('Iteration #')
-    plt.ylabel('Total Thrust [N]')
-    # plt.title('Total Thrust vs Iteration')
-    plt.grid(True, alpha=0.3)
-    #Mark the final point
-    plt.plot(iter[-1], total_thrust_lst[-1], marker='o', markersize=10, color='red', label={f'Final thrust: {total_thrust_lst[-1]:.2f} N'})
-    plt.legend()
-    plt.tight_layout()
-    if save:
-        plt.savefig(plot_dir.joinpath('convergence_history.pdf'))
-    plt.show()
-
     
+    
+    ax.set_label(['Iteration #','Total Thrust [N]'])
+    ax.grid(True, alpha=0.3)
+    #Mark the final point
+    if mark:
+        ax.plot(iter, total_thrust_lst, marker='o')
+        ax.plot(iter[-1], total_thrust_lst[-1], marker='o', markersize=10, color='red', label={f'Final thrust: {total_thrust_lst[-1]:.2f} N'})
+    else:
+        label = {f'{dist} with final thrust: {total_thrust_lst[-1]:.2f} N'}
+        ax.plot(iter, total_thrust_lst, marker='o',label=label)
+    ax.legend()
