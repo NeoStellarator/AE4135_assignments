@@ -67,7 +67,7 @@ class Rotor:
             rr = (1 - np.cos(np.linspace(0, np.pi, n_elem+1)))/2 * (1-r_R_H) + r_R_H
             self.r1_R_lst = rr[:-1]
             self.r2_R_lst = rr[1:]
-            
+            self.dr_R = rr[1:] - rr[:-1]
             self.r_R = (rr[1:] + rr[:-1])/2
             
             self.c_R = c_R_func(self.r_R)
@@ -194,7 +194,7 @@ class Rotor:
         save_df["phi"]     = self.phi
         save_df["a"]       = self.a
         save_df["aline"]   = self.aline
-        save_df["Ct"]      = self.CT
+        save_df["Ct"]      = self.Ct
         save_df["Cx"]      = self.Cx
         save_df["Cy"]      = self.Cy
         save_df["Cq"]      = self.CQ
