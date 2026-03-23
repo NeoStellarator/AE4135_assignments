@@ -72,6 +72,7 @@ class Rotor:
             
             self.c_R = c_R_func(self.r_R)
             self.beta = pitch + twst_func(self.r_R)
+        self.annuli_A_R2 = np.pi*(np.array(self.r2_R_lst)**2-np.array(self.r1_R_lst)**2)
 
 
         # Evaluation of annuli
@@ -116,7 +117,7 @@ class Rotor:
         # force/moment coefficients
         self.CT  = self.T/(self.rho*self.n**2*(self.R*2)**4)
         self.TC  = self.T/(self.rho*self.Vinf**2*(self.R*2)**2)
-        self.CP  = self.T/(self.rho*self.n**3*(self.R*2)**5)
+        self.CP  = self.P/(self.rho*self.n**3*(self.R*2)**5)
         self.PC  = self.P/(self.rho*self.Vinf**3*(self.R*2)**2)
         self.CQ  = self.Q/(self.rho*self.n**2*(self.R*2)**5)
         self.QC  = self.Q/(self.rho*self.Vinf**2*(self.R*2)**3)
@@ -199,6 +200,8 @@ class Rotor:
         save_df["Cy"]      = self.Cy
         save_df["Cq"]      = self.CQ
         save_df["Cp"]      = self.CP
+        save_df["N"]      = self.Np
+        save_df["T"]      = self.Tp
         save_df.to_csv(file_path, index=False)
 
     def export_hist(self, file_path:str|Path, vname:str='CT') -> None:
@@ -233,7 +236,9 @@ class Rotor:
             'T': self.T,
             'A': self.A,
             'Q': self.Q,
-            'P': self.P
+            'P': self.P,
+            'QC': self.QC,
+            'TC': self.TC
         }])
         
         if os.path.isfile(file_path):
